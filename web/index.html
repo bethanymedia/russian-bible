@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Библия">
+<meta name="theme-color" content="#ffffff">
+<title>Библия</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main id="reader" tabindex="-1">
+  <div id="loading">Загрузка…</div>
+  <h1 id="title"></h1>
+  <div id="text"></div>
+  <div id="endnav"></div>
+</main>
+
+<div id="player" hidden>
+  <button id="pPlay" aria-label="Воспроизвести">▶</button>
+  <input id="pSeek" type="range" min="0" max="1000" value="0" aria-label="Позиция">
+  <span id="pTime">0:00</span>
+  <button id="pClose" aria-label="Закрыть">✕</button>
+</div>
+
+<nav id="bar">
+  <div id="slots"></div>
+  <button id="current"></button>
+  <div id="right">
+    <button id="audioBtn" aria-label="Слушать">▶</button>
+    <button id="menuBtn" aria-label="Меню">☰</button>
+  </div>
+</nav>
+
+<div id="sheet" hidden>
+  <div id="sheetHead"><button id="sheetBack" hidden>‹ Назад</button><span id="sheetTitle"></span><button id="sheetClose">Готово</button></div>
+  <div id="sheetBody"></div>
+</div>
+<div id="pop" hidden>
+  <div class="lbl">Размер текста</div>
+  <div class="size"><span style="font-size:13px">А</span><input id="fsRange" type="range" min="14" max="40" step="1"><span style="font-size:22px">А</span></div>
+  <div class="lbl">Тема</div>
+  <div class="seg" id="themeSeg"><button data-t="light">Светлая</button><button data-t="dark">Тёмная</button><button data-t="system">Авто</button></div>
+  <div class="lbl">Чтец (аудио)</div>
+  <select id="readerSel"><option value="kozlov">Игорь Козлов</option><option value="efimov">А. Ф. Ефимов</option></select>
+  <button class="link" id="aboutBtn">О приложении</button>
+</div>
+<audio id="audio" preload="none"></audio>
+<script src="app.js"></script>
+</body>
+</html>
