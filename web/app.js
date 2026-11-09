@@ -9,7 +9,7 @@ function snapRate(r){
   for (const x of RATES) { const d = Math.abs(r - x); if (d < bd) { best = x; bd = d; } }
   return best;
 }
-const DEF = { active: 0, slots: [{b:0,c:0,y:0,vi:0,vo:0},{b:18,c:21,y:0,vi:0,vo:0},{b:42,c:0,y:0,vi:0,vo:0}], fs: 24, theme: 'dark', reader: 'kozlov', cont: true, rate: 1, follow: true, lang: 'ru', tr: 'web', trAll: false, mode: '', num: 'syn', tabsV: 2, haWebhook: '', adv: false };
+const DEF = { active: 0, slots: [{b:0,c:0,y:0,vi:0,vo:0},{b:18,c:21,y:0,vi:0,vo:0},{b:42,c:0,y:0,vi:0,vo:0}], fs: 24, theme: 'dark', reader: 'kozlov', cont: true, rate: 1, follow: true, lang: 'ru', tr: 'web', trAll: false, mode: '', num: 'syn', tabsV: 2, haWebhook: '', adv: false, fsUser: false };
 /* KJV chapter → Synodal chapter for Psalms (1-based). Built from inline markers. */
 const PS_KJV_TO_SYN = {"1":1,"2":2,"3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9,"10":9,"11":10,"12":11,"13":12,"14":13,"15":14,"16":15,"17":16,"18":17,"19":18,"20":19,"21":20,"22":21,"23":22,"24":23,"25":24,"26":25,"27":26,"28":27,"29":28,"30":29,"31":30,"32":31,"33":32,"34":33,"35":34,"36":35,"37":36,"38":37,"39":38,"40":39,"41":40,"42":41,"43":42,"44":43,"45":44,"46":45,"47":46,"48":47,"49":48,"50":49,"51":50,"52":51,"53":52,"54":53,"55":54,"56":55,"57":56,"58":57,"59":58,"60":59,"61":60,"62":61,"63":62,"64":63,"65":64,"66":65,"67":66,"68":67,"69":68,"70":69,"71":70,"72":71,"73":72,"74":73,"75":74,"76":75,"77":76,"78":77,"79":78,"80":79,"81":80,"82":81,"83":82,"84":83,"85":84,"86":85,"87":86,"88":87,"89":88,"90":89,"91":90,"92":91,"93":92,"94":93,"95":94,"96":95,"97":96,"98":97,"99":98,"100":99,"101":100,"102":101,"103":102,"104":103,"105":104,"106":105,"107":106,"108":107,"109":108,"110":109,"111":110,"112":111,"113":112,"114":113,"115":113,"116":114,"117":116,"118":117,"119":118,"120":119,"121":120,"122":121,"123":122,"124":123,"125":124,"126":125,"127":126,"128":127,"129":128,"130":129,"131":130,"132":131,"133":132,"134":133,"135":134,"136":135,"137":136,"138":137,"139":138,"140":139,"141":140,"142":141,"143":142,"144":143,"145":144,"146":145,"147":146,"148":148,"149":149,"150":150};
 
@@ -46,16 +46,22 @@ function migrateState(s){
   s.rate = snapRate(s.rate);
   return s;
 }
+function isPhone(){ return !!(window.matchMedia && (window.matchMedia('(max-width:600px)').matches || window.matchMedia('(max-height:500px) and (max-width:1000px)').matches)); }
 function load(){
   try {
     const s = JSON.parse(localStorage.getItem(KEY));
     if (s && s.slots && s.slots.length === 3) {
       const m = migrateState(Object.assign({}, DEF, s));
+      /* Existing installs keep their font; only brand-new phone users get 20 */
+      if (!('fsUser' in m)) m.fsUser = true;
       localStorage.setItem(KEY, JSON.stringify(m));
       return m;
     }
   } catch(e){}
-  return JSON.parse(JSON.stringify(DEF));
+  const d = JSON.parse(JSON.stringify(DEF));
+  d.fsUser = false;
+  if (isPhone()) d.fs = 20;
+  return d;
 }
 function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
 let S = load(), BIBLE = null, TIMES = {}, COMM = {}, SIMF = null;
@@ -109,15 +115,19 @@ function syncModeButtons(){
   document.querySelectorAll('.modeBtn').forEach(btn => {
     const on = S.mode === btn.dataset.mode;
     btn.classList.toggle('on', on);
-    /* Always full words; active state is color/outline only */
-    if (btn.dataset.full) btn.textContent = btn.dataset.full;
+    /* Phone: short labels; iPad/desktop: full words */
+    if (btn.dataset.full) {
+      btn.textContent = (isPhone() && btn.dataset.short) ? btn.dataset.short : btn.dataset.full;
+    }
   });
   S.trAll = S.mode === 'en';
   document.body.classList.toggle('modeOn', !!S.mode);
+  document.body.classList.toggle('phone', isPhone());
   updateStickyHdrVar();
 }
 function stickyHdrOffset(){
-  if (!S.mode) return 0;
+  /* Phone: header always sticky; iPad/desktop: only while a mode is on */
+  if (!S.mode && !isPhone()) return 0;
   const row = $('#titleRow');
   return row ? Math.ceil(row.getBoundingClientRect().height) + 6 : 0;
 }
@@ -295,7 +305,7 @@ function renderBar(){
   const {b, c} = slot();
   /* While playing, use short abbr so the seek slider keeps room (no «Псалтирь…») */
   const playing = document.body.classList.contains('playing');
-  $('#current').textContent = playing ? `${book(b).a} ${c+1}` : `${book(b).n} ${c+1}`;
+  $('#current').textContent = (playing && !isPhone()) ? `${book(b).a} ${c+1}` : `${book(b).n} ${c+1}`;
   const atStart = b === 0 && c === 0;
   const atEnd = b === 65 && c === book(65).c.length - 1;
   $('#prevCh').disabled = atStart;
@@ -441,7 +451,7 @@ document.querySelectorAll('#langSeg button').forEach(b => b.onclick = () => { S.
 document.querySelectorAll('.modeBtn').forEach(b => b.onclick = () => setMode(b.dataset.mode));
 $('#trSel').innerHTML = TRS.map(x => `<option value="${x.id}">${x.label}</option>`).join('');
 $('#trSel').onchange = e => { S.tr = e.target.value; save(); hideAll(); if (S.mode === 'en') showAll(); };
-$('#fsRange').oninput = e => { S.fs = Math.min(64, Math.max(18, +e.target.value)); save(); applyPrefs(); };
+$('#fsRange').oninput = e => { S.fs = Math.min(64, Math.max(18, +e.target.value)); S.fsUser = true; save(); applyPrefs(); };
 document.querySelectorAll('#themeSeg button').forEach(b => b.onclick = () => { S.theme = b.dataset.t; save(); applyPrefs(); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyPrefs);
 function switchReader(next){
@@ -698,11 +708,30 @@ function syncSeekFill(){
   const pct = max ? (100 * (+el.value || 0) / max) : 0;
   el.style.setProperty('--seek-pct', pct + '%');
 }
+function layoutPhoneChrome(){
+  const slots = $('#slots');
+  const titleRow = $('#titleRow');
+  const bar = $('#bar');
+  if (!slots || !titleRow || !bar) return;
+  const phone = isPhone();
+  document.body.classList.toggle('phone', phone);
+  if (phone) {
+    if (slots.parentElement !== titleRow) titleRow.appendChild(slots);
+  } else {
+    if (slots.parentElement !== bar) {
+      const ch = $('#chNav');
+      if (ch && ch.parentElement === bar) bar.insertBefore(slots, ch.nextSibling);
+      else bar.appendChild(slots);
+    }
+  }
+  syncModeButtons();
+  updateStickyHdrVar();
+}
 function layoutAudioBtn(){
   const bar = $('#bar'), btn = $('#audioBtn'), menu = $('#menuBtn'), prev = $('#prevCh');
   if (!bar || !btn || !menu || !prev) return;
-  /* Playing: in-flow after ☰ — clear absolute centering vars */
-  if (!$('#player').hidden) {
+  /* Playing or phone two-row bar: in-flow after ☰ */
+  if (!$('#player').hidden || isPhone()) {
     bar.style.setProperty('--audio-pad', '0px');
     btn.style.minWidth = '';
     btn.style.width = '';
@@ -735,8 +764,8 @@ function scheduleLayoutAudioBtn(){
   clearTimeout(layoutAudioT);
   layoutAudioT = setTimeout(layoutAudioBtn, 30);
 }
-window.addEventListener('resize', () => { scheduleLayoutAudioBtn(); updateStickyHdrVar(); });
-window.addEventListener('orientationchange', () => setTimeout(() => { layoutAudioBtn(); updateStickyHdrVar(); }, 120));
+window.addEventListener('resize', () => { layoutPhoneChrome(); scheduleLayoutAudioBtn(); updateStickyHdrVar(); });
+window.addEventListener('orientationchange', () => setTimeout(() => { layoutPhoneChrome(); layoutAudioBtn(); updateStickyHdrVar(); }, 120));
 
 /* Audio — session (audioBook/audioChap) is independent of the viewed slot */
 const audio = $('#audio');
@@ -1247,6 +1276,7 @@ startHaTicker();
 /* Start */
 applyPrefs();
 initVoiceUi();
+layoutPhoneChrome();
 layoutAudioBtn();
 bumpActivity();
 fetch('data/bible.json').then(r => r.json()).then(d => {
