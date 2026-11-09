@@ -39,23 +39,25 @@
 </nav>
 
 <div id="sheet" hidden>
-  <div id="sheetHead"><button id="sheetBack" hidden>‹ Назад</button><span id="sheetTitle"></span><button id="sheetClose">Готово</button></div>
+  <div id="sheetHead"><button id="sheetBack" hidden data-i="back">‹ Назад</button><span id="sheetTitle"></span><button id="sheetClose" data-i="done">Готово</button></div>
   <div id="sheetBody"></div>
 </div>
 <div id="pop" hidden>
-  <div class="lbl">Размер текста</div>
+  <div class="lbl">Язык · Language</div>
+  <div class="seg" id="langSeg"><button data-l="ru">Русский</button><button data-l="en">English</button></div>
+  <div class="lbl" data-i="size">Размер текста</div>
   <div class="size"><span style="font-size:13px">А</span><input id="fsRange" type="range" min="14" max="40" step="1"><span style="font-size:22px">А</span></div>
-  <div class="lbl">Тема</div>
-  <div class="seg" id="themeSeg"><button data-t="light">Светлая</button><button data-t="dark">Тёмная</button><button data-t="system">Авто</button></div>
-  <div class="lbl">Чтец (аудио)</div>
+  <div class="lbl" data-i="theme">Тема</div>
+  <div class="seg" id="themeSeg"><button data-t="light" data-i="light">Светлая</button><button data-t="dark" data-i="dark">Тёмная</button><button data-t="system" data-i="auto">Авто</button></div>
+  <div class="lbl" data-i="reader">Чтец (аудио)</div>
   <select id="readerSel"><option value="kozlov">Игорь Козлов</option><option value="efimov">А. Ф. Ефимов</option></select>
-  <div class="lbl">Скорость</div>
+  <div class="lbl" data-i="speed">Скорость</div>
   <div class="seg" id="rateSeg"><button data-r="0.75">0.75×</button><button data-r="1">1×</button><button data-r="1.25">1.25×</button><button data-r="1.5">1.5×</button></div>
-  <div class="lbl">Таймер сна</div>
-  <div class="seg" id="sleepSeg"><button data-s="0">Выкл</button><button data-s="15">15 м</button><button data-s="30">30 м</button><button data-s="60">60 м</button><button data-s="-1">Глава</button></div>
-  <label class="tog"><span>Продолжать со следующей главы</span><input type="checkbox" id="contChk"></label>
-  <label class="tog"><span>Следить за стихом (Козлов)</span><input type="checkbox" id="followChk"></label>
-  <button class="link" id="aboutBtn">О приложении</button>
+  <div class="lbl" data-i="sleep">Таймер сна</div>
+  <div class="seg" id="sleepSeg"><button data-s="0" data-i="off">Выкл</button><button data-s="15" data-i="m15">15 м</button><button data-s="30" data-i="m30">30 м</button><button data-s="60" data-i="m60">60 м</button><button data-s="-1" data-i="chEnd">Глава</button></div>
+  <label class="tog"><span data-i="cont">Продолжать со следующей главы</span><input type="checkbox" id="contChk"></label>
+  <label class="tog"><span data-i="follow">Следить за стихом (Козлов)</span><input type="checkbox" id="followChk"></label>
+  <button class="link" id="aboutBtn" data-i="about">О приложении</button>
 </div>
 <audio id="audio" preload="none"></audio>
 <script src="app.js"></script>

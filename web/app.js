@@ -1,11 +1,17 @@
 'use strict';
 const $ = s => document.querySelector(s);
 const KEY = 'rb_state_v1';
-const DEF = { active: 0, slots: [{b:0,c:0,y:0},{b:18,c:22,y:0},{b:42,c:0,y:0}], fs: 20, theme: 'dark', reader: 'kozlov', cont: true, rate: 1, follow: true };
+const DEF = { active: 0, slots: [{b:0,c:0,y:0},{b:18,c:22,y:0},{b:42,c:0,y:0}], fs: 20, theme: 'dark', reader: 'kozlov', cont: true, rate: 1, follow: true, lang: 'ru' };
 let S = load(), BIBLE = null, TIMES = {}, timesOK = false;
 
 function load(){ try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.slots && s.slots.length === 3) return Object.assign({}, DEF, s); } catch(e){} return JSON.parse(JSON.stringify(DEF)); }
 function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+const T = {
+ ru:{size:'Размер текста',theme:'Тема',light:'Светлая',dark:'Тёмная',auto:'Авто',reader:'Чтец (аудио)',speed:'Скорость',sleep:'Таймер сна',off:'Выкл',m15:'15 м',m30:'30 м',m60:'60 м',chEnd:'Глава',cont:'Продолжать со следующей главы',follow:'Следить за стихом (Козлов)',about:'О приложении',back:'‹ Назад',done:'Готово',books:'Книги',list:'Список книг',noaudio:'нет аудио',
+  credits:'<p><b>Текст:</b> Синодальный перевод (1876), общественное достояние. Источник: The Unbound Bible (Biola University).</p><p><b>Аудио:</b> Игорь Козлов, издательство «Благовестник» (распространяется свободно); файлы: Hugging Face, enochlev/russian-synodal-bible-kozlov.</p><p><b>Аудио:</b> А. Ф. Ефимов, «Благовестник»; файлы: The Audio Power (theaudiopower.org).</p><p>Аудио воспроизводится через интернет.</p>'},
+ en:{size:'Text size',theme:'Theme',light:'Light',dark:'Dark',auto:'Auto',reader:'Reader (audio)',speed:'Speed',sleep:'Sleep timer',off:'Off',m15:'15 m',m30:'30 m',m60:'60 m',chEnd:'Chapter',cont:'Continue to next chapter',follow:'Follow the verse (Kozlov)',about:'About',back:'‹ Back',done:'Done',books:'Books',list:'Book list',noaudio:'no audio',
+  credits:'<p><b>Text:</b> Russian Synodal Translation (1876), public domain. Source: The Unbound Bible (Biola University).</p><p><b>Audio:</b> Igor Kozlov, Blagovestnik publishers (freely distributed); files: Hugging Face, enochlev/russian-synodal-bible-kozlov.</p><p><b>Audio:</b> A. F. Efimov, Blagovestnik; files: The Audio Power (theaudiopower.org).</p><p>Audio streams over the internet.</p>'}};
+const t = k => (T[S.lang] || T.ru)[k];
 const slot = () => S.slots[S.active];
 const book = i => BIBLE.books[i];
 
@@ -15,6 +21,8 @@ function applyPrefs(){
   $('#fsRange').value = S.fs;
   document.querySelectorAll('#themeSeg button').forEach(b => b.classList.toggle('on', b.dataset.t === S.theme));
   $('#readerSel').value = S.reader;
+  document.querySelectorAll('[data-i]').forEach(e => e.textContent = t(e.dataset.i));
+  document.querySelectorAll('#langSeg button').forEach(b => b.classList.toggle('on', b.dataset.l === S.lang));
   $('#contChk').checked = S.cont; $('#followChk').checked = S.follow;
   document.querySelectorAll('#rateSeg button').forEach(b => b.classList.toggle('on', +b.dataset.r === S.rate));
   document.querySelectorAll('#sleepSeg button').forEach(b => b.classList.toggle('on', +b.dataset.s === sleepMode));
@@ -36,7 +44,7 @@ function render(keepScroll){
     en.appendChild(btn(`${chapTitle(b, c+1)} →`, () => go(b, c+1)));
   } else {
     if (b < 65) en.appendChild(btn(`Далее: ${book(b+1).n} →`, () => go(b+1, 0)));
-    en.appendChild(btn('Список книг', () => openBooks()));
+    en.appendChild(btn(t('list'), () => openBooks()));
   }
   renderBar();
   const r = $('#reader');
@@ -69,7 +77,7 @@ function closeSheet(){ $('#sheet').hidden = true; }
 $('#sheetClose').onclick = closeSheet;
 
 function openBooks(){
-  openSheet('Книги');
+  openSheet(t('books'));
   const body = $('#sheetBody'); body.innerHTML = '';
   [['Ветхий Завет', 0, 39], ['Новый Завет', 39, 66]].forEach(([name, a, z]) => {
     const h = document.createElement('div'); h.className = 'sec'; h.textContent = name; body.appendChild(h);
@@ -92,16 +100,14 @@ $('#current').onclick = openBooks;
 function closePop(){ $('#pop').hidden = true; }
 $('#menuBtn').onclick = e => { e.stopPropagation(); $('#pop').hidden = !$('#pop').hidden; };
 document.addEventListener('click', e => { if (!$('#pop').hidden && !$('#pop').contains(e.target) && e.target !== $('#menuBtn')) closePop(); });
+document.querySelectorAll('#langSeg button').forEach(b => b.onclick = () => { S.lang = b.dataset.l; save(); applyPrefs(); if (BIBLE) render(true); });
 $('#fsRange').oninput = e => { S.fs = +e.target.value; save(); applyPrefs(); };
 document.querySelectorAll('#themeSeg button').forEach(b => b.onclick = () => { S.theme = b.dataset.t; save(); applyPrefs(); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyPrefs);
 $('#readerSel').onchange = e => { const was = !audio.paused; S.reader = e.target.value; save(); loadAudio(); if (was) audio.play().catch(()=>{}); };
 $('#aboutBtn').onclick = () => {
-  openSheet('О приложении');
-  $('#sheetBody').innerHTML = `<div class="credits"><p><b>Текст:</b> Синодальный перевод (1876), общественное достояние. Источник: The Unbound Bible (Biola University).</p>
-  <p><b>Аудио:</b> Игорь Козлов, издательство «Благовестник» (распространяется свободно); файлы: Hugging Face, enochlev/russian-synodal-bible-kozlov.</p>
-  <p><b>Аудио:</b> А. Ф. Ефимов, «Благовестник»; файлы: The Audio Power (theaudiopower.org).</p>
-  <p>Аудио воспроизводится через интернет.</p></div>`;
+  openSheet(t('about'));
+  $('#sheetBody').innerHTML = '<div class="credits">' + t('credits') + '</div>';
 };
 
 /* Audio */
@@ -137,7 +143,7 @@ $('#contChk').onchange = e => { S.cont = e.target.checked; save(); };
 $('#followChk').onchange = e => { S.follow = e.target.checked; save(); if (!S.follow) clearHL(); };
 audio.onplay = () => { audio.playbackRate = S.rate; $('#audioBtn').textContent = '❚❚'; };
 audio.onpause = () => { $('#audioBtn').textContent = '▶'; };
-audio.onerror = () => { $('#pTime').textContent = 'нет аудио'; };
+audio.onerror = () => { $('#pTime').textContent = t('noaudio'); };
 const fmt = t => isFinite(t) ? Math.floor(t/60) + ':' + String(Math.floor(t%60)).padStart(2,'0') : '0:00';
 let seeking = false;
 $('#pSeek').oninput = () => { seeking = true; };
