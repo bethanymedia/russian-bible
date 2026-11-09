@@ -85,25 +85,35 @@ function closeSheet(){ $('#sheet').hidden = true; }
 $('#sheetClose').onclick = closeSheet;
 
 function openBooks(){
+  if (!$('#sheet').hidden) { closeSheet(); return; }
   openSheet(t('books'));
-  const body = $('#sheetBody'); body.innerHTML = '';
-  const wrap = document.createElement('div'); wrap.className = 'tsts'; body.appendChild(wrap);
+  const body = $('#sheetBody'); body.innerHTML = ''; body.className = 'pkb';
+  const pk = document.createElement('div'); pk.className = 'pk'; body.appendChild(pk);
+  const ch = document.createElement('div'); ch.className = 'chc';
+  const fill = (b) => {
+    pk.querySelectorAll('.books button').forEach((x, i) => x.classList.toggle('cur', i === b));
+    ch.style.setProperty('--c', b >= 39 ? 'var(--nt)' : 'var(--ot)');
+    ch.innerHTML = '<div class="sec">' + book(b).n + '</div>';
+    const g = document.createElement('div'); g.className = 'cg';
+    book(b).c.forEach((_, c) => g.appendChild(btn(String(c+1), () => go(b, c), (b === slot().b && c === slot().c) ? 'cur' : '')));
+    ch.appendChild(g);
+    const cur = g.querySelector('.cur'); if (cur) cur.scrollIntoView({block:'center'});
+  };
   [['Ветхий Завет', 0, 39, 'ot'], ['Новый Завет', 39, 66, 'nt']].forEach(([name, a, z, k]) => {
     const box = document.createElement('div'); box.className = 'tst ' + k;
     const h = document.createElement('div'); h.className = 'sec'; h.textContent = name; box.appendChild(h);
     const g = document.createElement('div'); g.className = 'books';
-    for (let i = a; i < z; i++) g.appendChild(btn(book(i).n, () => book(i).c.length === 1 ? go(i, 0) : openChapters(i), i === slot().b ? 'cur' : ''));
-    box.appendChild(g); wrap.appendChild(box);
+    for (let i = a; i < z; i++) g.appendChild(btn(book(i).n, () => book(i).c.length === 1 ? go(i, 0) : fill(i)));
+    box.appendChild(g); pk.appendChild(box);
   });
-  const cur = body.querySelector('.cur'); if (cur) cur.scrollIntoView({block:'center'});
+  pk.appendChild(ch);
+  fill(slot().b);
 }
-function openChapters(b){
-  openSheet(book(b).n, openBooks);
-  const body = $('#sheetBody'); body.innerHTML = '';
-  const g = document.createElement('div'); g.className = 'chaps';
-  book(b).c.forEach((_, c) => g.appendChild(btn(String(c+1), () => go(b, c), (b === slot().b && c === slot().c) ? 'cur' : '')));
-  body.appendChild(g);
-}
+/* swipe down on the header closes the picker */
+(() => { let y0 = null; const h = $('#sheetHead');
+  h.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; }, {passive:true});
+  h.addEventListener('touchend', e => { if (y0 !== null && e.changedTouches[0].clientY - y0 > 50) closeSheet(); y0 = null; });
+})();
 $('#current').onclick = openBooks;
 
 /* Quick settings panel */
