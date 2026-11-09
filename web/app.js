@@ -918,6 +918,37 @@ function startHaTicker(){
 }
 startHaTicker();
 
+
+/* iPad / iOS: block pinch-zoom and double-tap zoom (viewport alone is ignored) */
+(function () {
+  const stop = e => { e.preventDefault(); };
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(type => {
+    document.addEventListener(type, stop, { passive: false });
+  });
+  document.addEventListener('touchmove', e => {
+    if (e.touches && e.touches.length > 1) { e.preventDefault(); return; }
+    if (typeof e.scale === 'number' && e.scale !== 1) e.preventDefault();
+  }, { passive: false });
+  document.addEventListener('dblclick', stop, { passive: false });
+  /* Short double-tap guard: block zoom-ish double taps, not UI taps */
+  let lastTap = 0, lastX = 0, lastY = 0;
+  document.addEventListener('touchend', e => {
+    const t0 = e.changedTouches && e.changedTouches[0];
+    if (!t0) return;
+    const now = Date.now();
+    const x = t0.clientX, y = t0.clientY;
+    const dt = now - lastTap;
+    const near = Math.abs(x - lastX) < 24 && Math.abs(y - lastY) < 24;
+    lastTap = now; lastX = x; lastY = y;
+    if (dt > 0 && dt < 280 && near) {
+      const interactive = e.target.closest && e.target.closest(
+        'button, input, select, textarea, a, label, #text p, #text .w, #bar, #pop, #sheet, #modeToggles, #chNav, #slots'
+      );
+      if (!interactive) e.preventDefault();
+    }
+  }, { passive: false });
+})();
+
 /* Start */
 applyPrefs();
 initVoiceUi();
