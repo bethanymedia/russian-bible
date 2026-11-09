@@ -84,6 +84,8 @@ function openSheet(title, back){ $('#sheet').hidden = false; $('#sheetTitle').te
 function closeSheet(){ $('#sheet').hidden = true; }
 $('#sheetClose').onclick = closeSheet;
 
+/* Law, History, Poetry, Major and Minor Prophets; Gospels, Acts, Paul, General letters, Revelation */
+const GROUPS = [[0,5],[5,17],[17,22],[22,27],[27,39],[39,43],[43,44],[44,58],[58,65],[65,66]];
 function openBooks(){
   if (!$('#sheet').hidden) { closeSheet(); return; }
   openSheet(t('books'));
@@ -102,9 +104,13 @@ function openBooks(){
   [['Ветхий Завет', 0, 39, 'ot'], ['Новый Завет', 39, 66, 'nt']].forEach(([name, a, z, k]) => {
     const box = document.createElement('div'); box.className = 'tst ' + k;
     const h = document.createElement('div'); h.className = 'sec'; h.textContent = name; box.appendChild(h);
-    const g = document.createElement('div'); g.className = 'books';
-    for (let i = a; i < z; i++) g.appendChild(btn(book(i).n, () => book(i).c.length === 1 ? go(i, 0) : fill(i)));
-    box.appendChild(g); pk.appendChild(box);
+    const cols = document.createElement('div'); cols.className = 'books';
+    GROUPS.filter(([ga]) => ga >= a && ga < z).forEach(([ga, gz]) => {
+      const g = document.createElement('div'); g.className = 'grp';
+      for (let i = ga; i < gz; i++) g.appendChild(btn(book(i).n, () => book(i).c.length === 1 ? go(i, 0) : fill(i)));
+      cols.appendChild(g);
+    });
+    box.appendChild(cols); pk.appendChild(box);
   });
   pk.appendChild(ch);
   fill(slot().b);
