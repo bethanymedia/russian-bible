@@ -62,5 +62,5 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #titleRow{position:relative}
 #trBtn{position:absolute;right:0;top:0;font:600 15px -apple-system,BlinkMacSystemFont,sans-serif;color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:5px 10px}
 #trBtn.on{color:var(--bg);background:var(--num);border-color:var(--num)}
-#text .tr{grid-column:2;display:block;color:var(--muted);font-size:.82em;line-height:1.35;margin-top:.05em;font-family:-apple-system,BlinkMacSystemFont,sans-serif}
+#text .tr{grid-column:2;display:block;color:var(--muted);font-size:1em;line-height:1.4;margin-top:.1em}
 #text p{cursor:pointer;-webkit-tap-highlight-color:transparent}
