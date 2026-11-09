@@ -681,7 +681,8 @@ GROUPS.tablet = async () => {
     const tabs = await ev(page, () => [...document.querySelectorAll('#slots button')].map(b => { const cs = getComputedStyle(b); return [cs.fontSize, cs.fontWeight, cs.backgroundColor, b.classList.contains('on')]; }));
     check(vp + ' tabs 20px bold', tabs.every(t => t[0] === '20px' && +t[1] >= 700), tabs);
     const act = tabs.find(t => t[3]), ina = tabs.filter(t => !t[3]);
-    check(vp + ' active tab gray, inactive black', ina.every(t => t[2] === 'rgb(0, 0, 0)') && act[2] !== 'rgb(0, 0, 0)' && /rgb/.test(act[2]), tabs);
+    const bg = await ev(page, () => getComputedStyle(document.body).backgroundColor);
+    check(vp + ' active tab gray, inactive = reading background', ina.every(t => t[2] === bg) && act[2] !== bg && /rgb/.test(act[2]), [bg, tabs]);
     check(vp + ' ▶ icon ~1.4x (31px)', await ev(page, () => Math.round($('#audioBtn svg').getBoundingClientRect().width) === 31));
     check(vp + ' no seek slider', await ev(page, () => !document.querySelector('#pSeek, #bar input[type=range]')));
     const p0 = await pos();
@@ -774,6 +775,48 @@ GROUPS.fonts = async () => {
   await open(p2, { raw: JSON.stringify({ slots: DEF_STATE.slots, active: 0, tabsV: 2, num: 'syn' }) });
   check('old state without font → default', await ev(p2, () => S.font === 'default'));
   await p2.close();
+};
+
+GROUPS.esword = async () => {
+  const C = (sel, prop) => getComputedStyle(document.querySelector(sel))[prop];
+  for (const vp of ['ipadL', 'ph390']) {
+    const page = await newPage(vp);
+    await open(page, { state: { theme: 'dark', slots: [{ b: 18, c: 22, y: 0, vi: 0, vo: 0 }, DEF_STATE.slots[1], DEF_STATE.slots[2]] } });
+    const c = await ev(page, () => ({ bg: getComputedStyle(document.body).backgroundColor, text: getComputedStyle(document.querySelector('#text p span:nth-child(2)')).color, num: getComputedStyle(document.querySelector('#text .n')).color, bar: getComputedStyle($('#bar')).backgroundColor }));
+    check(vp + ' dark: reading bg #121212', c.bg === 'rgb(18, 18, 18)', c);
+    check(vp + ' dark: Bible text #CFCFCF', c.text === 'rgb(207, 207, 207)', c);
+    check(vp + ' dark: verse numbers stay green', c.num === 'rgb(52, 211, 153)', c);
+    check(vp + ' dark: bar a touch lighter than page', c.bar !== c.bg, c);
+    await tap(page, '#v3 span:nth-child(2)'); await wait(250);
+    const sel = await ev(page, () => { const p = document.querySelector('#text p.sel'), cs = getComputedStyle(p), ip = p.querySelector('.verseInlinePlay'), r = ip.getBoundingClientRect(), svg = ip.querySelector('svg'), path = svg.querySelector('path'), pr = path.getBoundingClientRect(), pcs = getComputedStyle(path);
+      return { bg: cs.backgroundColor, outline: cs.outlineStyle, ipBg: getComputedStyle(ip).backgroundColor, glyph: getComputedStyle(ip.querySelector('.g')).display, svg: getComputedStyle(svg).display, stroke: pcs.stroke, fill: pcs.fill, sw: pcs.strokeWidth, triH: Math.round(pr.height), w: Math.round(r.width), h: Math.round(r.height), triL: pr.left, triR: pr.right, ipL: r.left, ipR: r.right, textL: p.querySelector('span:nth-child(2)').getBoundingClientRect().left }; });
+    check(vp + ' dark: selected verse navy #19334D, no outline', sel.bg === 'rgb(25, 51, 77)' && sel.outline === 'none', sel);
+    check(vp + ' dark: inline ▶ is an outlined triangle, no background', sel.svg === 'block' && sel.glyph === 'none' && sel.fill === 'none' && sel.stroke === 'rgb(207, 207, 207)' && sel.ipBg === 'rgba(0, 0, 0, 0)', sel);
+    check(vp + ' dark: triangle ~24px tall', sel.triH >= 21 && sel.triH <= 27, sel.triH);
+    check(vp + ' inline ▶ tap target kept', vp === 'ph390' ? sel.w >= 28 && sel.h >= 40 : sel.w >= 44 && sel.h >= 44, sel);
+    check(vp + ' triangle sits in the gutter, clear of the text', sel.triR <= sel.textL && sel.triL >= 0, sel);
+    if (vp === 'ipadL') await page.screenshot({ path: '/workspace/shots/esword-colors.png' });
+    await clickSel(page, '#tolkBtn'); await tap(page, '#v3 span:nth-child(2)'); await wait(500);
+    const pc = await ev(page, () => ({ body: getComputedStyle($('#featBody')).color, ref: document.querySelector('#featBody .featRef') ? getComputedStyle(document.querySelector('#featBody .featRef')).color : null }));
+    check(vp + ' dark: Толкование body + heading #CFCFCF', pc.body === 'rgb(207, 207, 207)' && (pc.ref === null || pc.ref === 'rgb(207, 207, 207)'), pc);
+    await ev(page, () => { closeSheet(); setMode('tolk'); setMode('simf'); }); await wait(100);
+    await page.$eval('#text .w', e => e.click()); await wait(400);
+    const sc = await ev(page, () => ({ hit: getComputedStyle($('.simfHit')).color, book: getComputedStyle($('.simfBook')).color }));
+    check(vp + ' dark: Симфония text + headings #CFCFCF', sc.hit === 'rgb(207, 207, 207)' && sc.book === 'rgb(207, 207, 207)', sc);
+    await ev(page, () => { closeSheet(); setMode('simf'); });
+    /* light theme unchanged */
+    await ev(page, () => { S.theme = 'light'; applyPrefs(); clearVerseSelection(); }); await wait(100);
+    await tap(page, '#v3 span:nth-child(2)'); await wait(250);
+    const lt = await ev(page, () => { const p = document.querySelector('#text p.sel'), ip = p.querySelector('.verseInlinePlay'); return { bg: getComputedStyle(document.body).backgroundColor, text: getComputedStyle(p.querySelector('span:nth-child(2)')).color, outline: getComputedStyle(p).outlineStyle, selBg: getComputedStyle(p).backgroundColor, glyph: getComputedStyle(ip.querySelector('.g')).display, svg: getComputedStyle(ip.querySelector('svg')).display, ipc: getComputedStyle(ip).color }; });
+    check(vp + ' light: unchanged (white, fg text, green selection + outline, filled ▶)', lt.bg === 'rgb(255, 255, 255)' && lt.text === 'rgb(28, 28, 30)' && lt.outline === 'solid' && !/25, 51, 77/.test(lt.selBg) && lt.glyph !== 'none' && lt.svg === 'none' && lt.ipc === 'rgb(0, 135, 90)', lt);
+    /* system theme follows dark */
+    await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }]);
+    await ev(page, () => { S.theme = 'system'; applyPrefs(); }); await wait(100);
+    check(vp + ' auto+dark gets the e-Sword colours', await ev(page, () => getComputedStyle(document.body).backgroundColor === 'rgb(18, 18, 18)' && getComputedStyle(document.querySelector('#text p.sel')).backgroundColor === 'rgb(25, 51, 77)'));
+    await page.emulateMediaFeatures([]);
+    await noErrors(page, vp + ' esword');
+    await page.close();
+  }
 };
 
 GROUPS.layout = async () => {

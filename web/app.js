@@ -784,7 +784,7 @@ function syncVerseInlinePlay(forceHide){
   b.type = 'button';
   b.className = 'verseInlinePlay';
   b.setAttribute('aria-label', 'С этой стиха');
-  b.textContent = '▶';
+  b.innerHTML = '<span class="g">▶</span><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M12 9 L32 20 L12 31Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/></svg>';
   b.onclick = e => {
     e.stopPropagation();
     playFromVerse(selectedVerse);
