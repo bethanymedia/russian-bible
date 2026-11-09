@@ -24,9 +24,9 @@
 
 
 <nav id="bar">
-  <div id="slots"></div>
-  <div id="mid">
-    <button id="current"></button>
+  <div id="left">
+    <button id="menuBtn" aria-label="Меню">☰</button>
+    <button id="audioBtn" aria-label="Слушать">▶</button>
     <div id="player" hidden>
       <button id="pBack" aria-label="Назад 15 секунд">↺15</button>
       <input id="pSeek" type="range" min="0" max="1000" value="0" aria-label="Позиция">
@@ -34,10 +34,8 @@
       <button id="pStop" aria-label="Стоп">■</button>
     </div>
   </div>
-  <div id="right">
-    <button id="audioBtn" aria-label="Слушать">▶</button>
-    <button id="menuBtn" aria-label="Меню">☰</button>
-  </div>
+  <button id="current"></button>
+  <div id="slots"></div>
 </nav>
 
 <div id="sheet" hidden>
