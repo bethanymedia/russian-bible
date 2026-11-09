@@ -51,8 +51,8 @@ function render(keepScroll){
   if (c < bk.c.length - 1) {
     en.appendChild(btn(`${chapTitle(b, c+1)} →`, () => go(b, c+1)));
   } else {
-    if (b < 65) en.appendChild(btn(`Далее: ${book(b+1).n} →`, () => go(b+1, 0)));
-    en.appendChild(btn(t('list'), () => openBooks()));
+    if (b < 65) en.appendChild(btn(`${book(b+1).n} →`, () => go(b+1, 0)));
+    en.appendChild(btn(t('books'), () => openBooks()));
   }
   renderBar();
   const r = $('#reader');
