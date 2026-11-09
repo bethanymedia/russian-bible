@@ -664,6 +664,10 @@ GROUPS.sw = async () => {
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => document.querySelector('#text p'), { timeout: 20000 });
   check('app loads under updated SW', true);
+  await page.evaluate(() => loadFont('pt-sans', [400]));
+  await wait(500);
+  check('font files cached at runtime by the SW', await page.evaluate(() => caches.match('fonts/pt-sans/cyrillic-400.woff2').then(r => !!r)));
+  check('fonts not precached', !String(fs.readFileSync(path.join(WEB, 'sw.js'))).match(/FILES = \[[^\]]*fonts/));
   check('no JS errors sw', page.__errs.length === 0, page.__errs);
   swOverride = null;
   await ctx.close();
@@ -714,6 +718,62 @@ GROUPS.tablet = async () => {
   check('phone tabs unchanged (14px regular)', pt.every(x => x === '14px/400'), pt);
   check('phone ▶ in-flow', await ev(ph, () => getComputedStyle($('#audioBtn')).position === 'static'));
   await ph.close();
+};
+
+GROUPS.fonts = async () => {
+  for (const vp of ['ipadL', 'ph390']) {
+    const page = await newPage(vp);
+    const reqs = [];
+    page.on('request', r => { if (r.url().includes('/fonts/')) reqs.push(r.url().split('/fonts/')[1]); });
+    await open(page, { state: { slots: [{ b: 18, c: 117, y: 0, vi: 0, vo: 0 }, DEF_STATE.slots[1], DEF_STATE.slots[2]] } });
+    check(vp + ' no font files before the menu opens', reqs.length === 0, reqs);
+    const chrome0 = await ev(page, () => [getComputedStyle($('#current')).fontFamily, getComputedStyle($('.modeBtn')).fontFamily, getComputedStyle($('#slots button')).fontFamily]);
+    await tap(page, '#menuBtn'); await wait(600);
+    const opts = await ev(page, () => [...document.querySelectorAll('#fontSeg button')].map(b => [b.dataset.f, b.textContent, getComputedStyle(b).fontFamily, b.classList.contains('on')]));
+    check(vp + ' six font choices, default on', opts.length === 6 && opts[0][0] === 'default' && opts[0][3] && opts.every(o => /^Аа /.test(o[1])), opts);
+    check(vp + ' each choice previews in its own face', opts.slice(1).every(o => o[2].includes('rb-' + o[0])), opts.map(o => o[2]));
+    check(vp + ' preview loads regular weights only', reqs.length === 10 && reqs.every(r => /-400\.woff2$/.test(r)), reqs);
+    check(vp + ' previews actually rendered', await ev(page, () => ['pt-serif', 'literata', 'noto-serif', 'pt-sans', 'noto-sans'].every(id => document.fonts.check('16px "rb-' + id + '"', 'Аа'))));
+    await layout(page, vp + '-fonts-menu');
+    await page.screenshot({ path: vp === 'ipadL' ? '/workspace/shots/fonts-menu.png' : '/workspace/shots/fonts-menu-phone.png' });
+    await ev(page, () => closePop());
+    await ev(page, () => { $('#v60').scrollIntoView(); }); await wait(400);
+    const a0 = await ev(page, () => captureAnchor().vi);
+    for (const id of ['pt-serif', 'pt-sans', 'literata']) {
+      await ev(page, id => document.querySelector('#fontSeg button[data-f="' + id + '"]').click(), id); await wait(500);
+      const a1 = await ev(page, () => captureAnchor().vi);
+      check(vp + ' switching to ' + id + ' keeps the place', a1 === a0, { a0, a1 });
+    }
+    check(vp + ' chosen font loads bold too', reqs.some(r => r === 'literata/cyrillic-700.woff2'), reqs);
+    const fam = await ev(page, () => getComputedStyle(document.querySelector('#text p span:nth-child(2)')).fontFamily);
+    check(vp + ' Bible text uses chosen font', /rb-literata/.test(fam), fam);
+    await clickSel(page, '#trBtn'); await wait(300);
+    check(vp + ' English lines use it', await ev(page, () => /rb-literata/.test(getComputedStyle($('#text .tr')).fontFamily)));
+    await clickSel(page, '#tolkBtn'); await tap(page, '#v61 span:nth-child(2)'); await wait(500);
+    check(vp + ' Толкование panel uses it', await ev(page, () => /rb-literata/.test(getComputedStyle($('#featBody')).fontFamily)));
+    await ev(page, () => { closeSheet(); setMode('simf'); }); await wait(100);
+    await page.$eval('#text .w', e => e.click()); await wait(400);
+    check(vp + ' Симфония hits use it', await ev(page, () => /rb-literata/.test(getComputedStyle($('.simfHit')).fontFamily)));
+    await ev(page, () => { closeSheet(); setMode('simf'); });
+    const chrome1 = await ev(page, () => [getComputedStyle($('#current')).fontFamily, getComputedStyle($('.modeBtn')).fontFamily, getComputedStyle($('#slots button')).fontFamily]);
+    check(vp + ' UI chrome font unchanged', JSON.stringify(chrome0) === JSON.stringify(chrome1), [chrome0, chrome1]);
+    await page.reload({ waitUntil: 'domcontentloaded' }); await page.waitForFunction(() => typeof BIBLE !== 'undefined' && BIBLE && deepReady); await wait(400);
+    check(vp + ' font choice persists', await ev(page, () => S.font === 'literata' && /rb-literata/.test(getComputedStyle($('#text')).fontFamily) && document.querySelector('#fontSeg button.on').dataset.f === 'literata'));
+    if (vp === 'ipadL') {
+      await ev(page, () => { setFont('pt-serif'); go(18, 22); }); await wait(600);
+      await page.screenshot({ path: '/workspace/shots/fonts-reading-pt-serif.png' });
+    }
+    await ev(page, () => setFont('default')); await wait(100);
+    check(vp + ' back to default (Georgia)', await ev(page, () => /^Georgia/.test(getComputedStyle($('#text')).fontFamily)));
+    await noErrors(page, vp + ' fonts');
+    await page.close();
+  }
+  const p2 = await newPage('ipadL');
+  await open(p2, { state: { font: 'comic-sans' } });
+  check('unknown saved font → default', await ev(p2, () => S.font === 'default'));
+  await open(p2, { raw: JSON.stringify({ slots: DEF_STATE.slots, active: 0, tabsV: 2, num: 'syn' }) });
+  check('old state without font → default', await ev(p2, () => S.font === 'default'));
+  await p2.close();
 };
 
 GROUPS.layout = async () => {

@@ -9,7 +9,21 @@ function snapRate(r){
   for (const x of RATES) { const d = Math.abs(r - x); if (d < bd) { best = x; bd = d; } }
   return best;
 }
-const DEF = { active: 0, slots: [{b:0,c:0,y:0,vi:0,vo:0},{b:18,c:21,y:0,vi:0,vo:0},{b:42,c:0,y:0,vi:0,vo:0}], fs: 24, theme: 'dark', reader: 'kozlov', cont: true, rate: 1, follow: true, lang: 'ru', tr: 'web', trAll: false, mode: '', num: 'syn', tabsV: 2, haWebhook: '', adv: false, driveSync: false, syncAt: 0 };
+const DEF = { active: 0, slots: [{b:0,c:0,y:0,vi:0,vo:0},{b:18,c:21,y:0,vi:0,vo:0},{b:42,c:0,y:0,vi:0,vo:0}], fs: 24, theme: 'dark', reader: 'kozlov', cont: true, rate: 1, follow: true, lang: 'ru', tr: 'web', trAll: false, mode: '', num: 'syn', tabsV: 2, haWebhook: '', adv: false, driveSync: false, syncAt: 0, font: 'default' };
+/* Bible text fonts (SIL OFL, self-hosted Cyrillic + Latin under fonts/). Loaded on demand:
+   the 400 weight when the menu shows its preview, 700 too once chosen. */
+const FONTS = [
+  { id: 'default', name: 'Georgia', stack: 'Georgia,"Times New Roman",serif' },
+  { id: 'pt-serif', name: 'PT Serif', serif: true },
+  { id: 'literata', name: 'Literata', serif: true },
+  { id: 'noto-serif', name: 'Noto Serif', serif: true },
+  { id: 'pt-sans', name: 'PT Sans' },
+  { id: 'noto-sans', name: 'Noto Sans' },
+];
+const FONT_RANGES = {
+  cyrillic: 'U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116',
+  latin: 'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD'
+};
 /* KJV chapter → Synodal chapter for Psalms (1-based). Built from inline markers. */
 const PS_KJV_TO_SYN = {"1":1,"2":2,"3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9,"10":9,"11":10,"12":11,"13":12,"14":13,"15":14,"16":15,"17":16,"18":17,"19":18,"20":19,"21":20,"22":21,"23":22,"24":23,"25":24,"26":25,"27":26,"28":27,"29":28,"30":29,"31":30,"32":31,"33":32,"34":33,"35":34,"36":35,"37":36,"38":37,"39":38,"40":39,"41":40,"42":41,"43":42,"44":43,"45":44,"46":45,"47":46,"48":47,"49":48,"50":49,"51":50,"52":51,"53":52,"54":53,"55":54,"56":55,"57":56,"58":57,"59":58,"60":59,"61":60,"62":61,"63":62,"64":63,"65":64,"66":65,"67":66,"68":67,"69":68,"70":69,"71":70,"72":71,"73":72,"74":73,"75":74,"76":75,"77":76,"78":77,"79":78,"80":79,"81":80,"82":81,"83":82,"84":83,"85":84,"86":85,"87":86,"88":87,"89":88,"90":89,"91":90,"92":91,"93":92,"94":93,"95":94,"96":95,"97":96,"98":97,"99":98,"100":99,"101":100,"102":101,"103":102,"104":103,"105":104,"106":105,"107":106,"108":107,"109":108,"110":109,"111":110,"112":111,"113":112,"114":113,"115":113,"116":114,"117":116,"118":117,"119":118,"120":119,"121":120,"122":121,"123":122,"124":123,"125":124,"126":125,"127":126,"128":127,"129":128,"130":129,"131":130,"132":131,"133":132,"134":133,"135":134,"136":135,"137":136,"138":137,"139":138,"140":139,"141":140,"142":141,"143":142,"144":143,"145":144,"146":145,"147":146,"148":148,"149":149,"150":150};
 
@@ -58,6 +72,7 @@ function sanitizeState(s){
   if (!['ru', 'en'].includes(s.lang)) s.lang = DEF.lang;
   if (!['', 'tolk', 'simf', 'en'].includes(s.mode)) s.mode = '';
   if (typeof s.haWebhook !== 'string') s.haWebhook = '';
+  if (!FONTS.some(f => f.id === s.font)) s.font = 'default';
   ['cont', 'follow'].forEach(k => { if (typeof s[k] !== 'boolean') s[k] = DEF[k]; });
   s.syncAt = +s.syncAt > 0 ? +s.syncAt : 0;
   return s;
@@ -89,11 +104,63 @@ function bumpSyncAt(){
 }
 let S = load(), BIBLE = null, TIMES = {}, COMM = {}, SIMF = null;
 
+const fontLoads = {};
+function fontFamily(f){ return f.stack || `"rb-${f.id}",${f.serif ? 'Georgia,serif' : '-apple-system,BlinkMacSystemFont,sans-serif'}`; }
+function loadFont(id, weights){
+  const f = FONTS.find(x => x.id === id);
+  if (!f || f.stack || !window.FontFace || !document.fonts) return Promise.resolve();
+  return Promise.all((weights || [400]).map(w => {
+    const k = id + ':' + w;
+    if (!fontLoads[k]) fontLoads[k] = Promise.all(['cyrillic', 'latin'].map(sub => {
+      const ff = new FontFace('rb-' + id, `url(fonts/${id}/${sub}-${w}.woff2) format("woff2")`, { weight: String(w), unicodeRange: FONT_RANGES[sub], display: 'swap' });
+      document.fonts.add(ff);
+      return ff.load();
+    })).catch(() => { delete fontLoads[k]; });
+    return fontLoads[k];
+  }));
+}
+function applyFont(){
+  const f = FONTS.find(x => x.id === S.font) || FONTS[0];
+  const root = document.documentElement.style;
+  if (f.stack) { root.removeProperty('--bible-font'); root.removeProperty('--panel-font'); }
+  else { root.setProperty('--bible-font', fontFamily(f)); root.setProperty('--panel-font', fontFamily(f)); }
+  document.querySelectorAll('#fontSeg button').forEach(b => { const on = b.dataset.f === S.font; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+}
+/* Switch font and keep the verse at the top in place, including when the file arrives */
+function setFont(id){
+  if (id === S.font) return;
+  const r = $('#reader');
+  const a = BIBLE && document.querySelector('#text p') ? captureAnchor() : null;
+  S.font = id; save();
+  keepPlace(applyFont, a || undefined);
+  const st = r.scrollTop;
+  loadFont(id, [400, 700]).then(() => {
+    if (S.font !== id || !a) return;
+    if (Math.abs(r.scrollTop - st) < 2) keepPlace(() => {}, a);
+  });
+}
+function buildFontMenu(){
+  const box = $('#fontSeg'); if (!box || box.childElementCount) return;
+  FONTS.forEach(f => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.dataset.f = f.id; b.setAttribute('role', 'radio');
+    b.style.fontFamily = fontFamily(f);
+    b.innerHTML = '<span class="aa">Аа</span> ';
+    b.appendChild(document.createTextNode(f.name));
+    b.onclick = () => setFont(f.id);
+    box.appendChild(b);
+  });
+  applyFont();
+}
+/* Previews: first time the menu opens, fetch each font's regular weight */
+let fontPreviewed = false;
+function previewFonts(){ if (fontPreviewed) return; fontPreviewed = true; FONTS.forEach(f => loadFont(f.id, [400])); }
+
 const T = {
- ru:{size:'Размер текста',theme:'Тема',light:'Светлая',dark:'Тёмная',auto:'Авто',reader:'Чтец (аудио)',speed:'Скорость',sleep:'Таймер сна',off:'Выкл',m15:'15 м',m30:'30 м',m60:'60 м',chEnd:'Глава',cont:'Продолжать со следующей главы',follow:'Следить за стихом (Козлов)',trl:'Перевод (English)',about:'О приложении',back:'‹ Назад',done:'Готово',books:'Книги',list:'Список книг',noaudio:'нет аудио',voice:'🎤 Голосовая команда',adv:'Дополнительно',sync:'Синхронизация (Google)',syncOn:'Вкл',syncOut:'Выйти',syncOff:'Не настроено',syncSigned:'Вход выполнен',readerKozlov:'Козлов',readerEfimov:'Ефимов',
-  credits:'<p><b>Текст:</b> Синодальный перевод (1876), общественное достояние. Источник: The Unbound Bible (Biola University). Нумерация глав и стихов — синодальная.</p><p><b>Аудио:</b> Игорь Козлов, издательство «Благовестник» (распространяется свободно); файлы: Hugging Face, enochlev/russian-synodal-bible-kozlov.</p><p><b>Аудио:</b> А. Ф. Ефимов, «Благовестник»; файлы: The Audio Power (theaudiopower.org).</p><p>Аудио воспроизводится через интернет.</p><p><b>Перевод:</b> World English Bible, общественное достояние (ebible.org). Английский сопоставлен с синодальной нумерацией.</p><p><b>Толкование:</b> Толковая Библия под ред. А. П. Лопухина и преемников (1904–1913), общественное достояние (OCR).</p>'},
- en:{size:'Text size',theme:'Theme',light:'Light',dark:'Dark',auto:'Auto',reader:'Reader (audio)',speed:'Speed',sleep:'Sleep timer',off:'Off',m15:'15 m',m30:'30 m',m60:'60 m',chEnd:'Chapter',cont:'Continue to next chapter',follow:'Follow the verse (Kozlov)',trl:'Translation (English)',about:'About',back:'‹ Back',done:'Done',books:'Books',list:'Book list',noaudio:'no audio',voice:'🎤 Voice command',adv:'Extra options',sync:'Sync (Google)',syncOn:'On',syncOut:'Sign out',syncOff:'Not configured',syncSigned:'Signed in',readerKozlov:'Kozlov',readerEfimov:'Efimov',
-  credits:'<p><b>Text:</b> Russian Synodal Translation (1876), public domain. Source: The Unbound Bible (Biola University). Chapter and verse numbering follows the Synodal (Russian) tradition.</p><p><b>Audio:</b> Igor Kozlov, Blagovestnik publishers (freely distributed); files: Hugging Face, enochlev/russian-synodal-bible-kozlov.</p><p><b>Audio:</b> A. F. Efimov, Blagovestnik; files: The Audio Power (theaudiopower.org).</p><p>Audio streams over the internet.</p><p><b>Translation:</b> World English Bible, public domain (ebible.org), aligned to Synodal numbering.</p><p><b>Commentary:</b> Lopukhin Explanatory Bible (1904–1913), public domain (OCR).</p>'}};
+ ru:{size:'Размер текста',font:'Шрифт',theme:'Тема',light:'Светлая',dark:'Тёмная',auto:'Авто',reader:'Чтец (аудио)',speed:'Скорость',sleep:'Таймер сна',off:'Выкл',m15:'15 м',m30:'30 м',m60:'60 м',chEnd:'Глава',cont:'Продолжать со следующей главы',follow:'Следить за стихом (Козлов)',trl:'Перевод (English)',about:'О приложении',back:'‹ Назад',done:'Готово',books:'Книги',list:'Список книг',noaudio:'нет аудио',voice:'🎤 Голосовая команда',adv:'Дополнительно',sync:'Синхронизация (Google)',syncOn:'Вкл',syncOut:'Выйти',syncOff:'Не настроено',syncSigned:'Вход выполнен',readerKozlov:'Козлов',readerEfimov:'Ефимов',
+  credits:'<p><b>Текст:</b> Синодальный перевод (1876), общественное достояние. Источник: The Unbound Bible (Biola University). Нумерация глав и стихов — синодальная.</p><p><b>Аудио:</b> Игорь Козлов, издательство «Благовестник» (распространяется свободно); файлы: Hugging Face, enochlev/russian-synodal-bible-kozlov.</p><p><b>Аудио:</b> А. Ф. Ефимов, «Благовестник»; файлы: The Audio Power (theaudiopower.org).</p><p>Аудио воспроизводится через интернет.</p><p><b>Перевод:</b> World English Bible, общественное достояние (ebible.org). Английский сопоставлен с синодальной нумерацией.</p><p><b>Толкование:</b> Толковая Библия под ред. А. П. Лопухина и преемников (1904–1913), общественное достояние (OCR).</p><p><b>Шрифты:</b> PT Serif, PT Sans (ParaType), Literata, Noto Serif, Noto Sans — SIL Open Font License 1.1; файлы лицензий в fonts/.</p>'},
+ en:{size:'Text size',font:'Font',theme:'Theme',light:'Light',dark:'Dark',auto:'Auto',reader:'Reader (audio)',speed:'Speed',sleep:'Sleep timer',off:'Off',m15:'15 m',m30:'30 m',m60:'60 m',chEnd:'Chapter',cont:'Continue to next chapter',follow:'Follow the verse (Kozlov)',trl:'Translation (English)',about:'About',back:'‹ Back',done:'Done',books:'Books',list:'Book list',noaudio:'no audio',voice:'🎤 Voice command',adv:'Extra options',sync:'Sync (Google)',syncOn:'On',syncOut:'Sign out',syncOff:'Not configured',syncSigned:'Signed in',readerKozlov:'Kozlov',readerEfimov:'Efimov',
+  credits:'<p><b>Text:</b> Russian Synodal Translation (1876), public domain. Source: The Unbound Bible (Biola University). Chapter and verse numbering follows the Synodal (Russian) tradition.</p><p><b>Audio:</b> Igor Kozlov, Blagovestnik publishers (freely distributed); files: Hugging Face, enochlev/russian-synodal-bible-kozlov.</p><p><b>Audio:</b> A. F. Efimov, Blagovestnik; files: The Audio Power (theaudiopower.org).</p><p>Audio streams over the internet.</p><p><b>Translation:</b> World English Bible, public domain (ebible.org), aligned to Synodal numbering.</p><p><b>Commentary:</b> Lopukhin Explanatory Bible (1904–1913), public domain (OCR).</p><p><b>Fonts:</b> PT Serif, PT Sans (ParaType), Literata, Noto Serif, Noto Sans — SIL Open Font License 1.1; license files in fonts/.</p>'}};
 const t = k => (T[S.lang] || T.ru)[k];
 const TRS = [{id:'web', file:'data/web.json', label:'English (WEB)'}];
 const TRD = {};
@@ -117,6 +184,7 @@ function applyPrefs(){
   document.querySelectorAll('#sleepSeg button').forEach(b => b.classList.toggle('on', +b.dataset.s === sleepMode));
   const dark = S.theme === 'dark' || (S.theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
   document.querySelector('meta[name=theme-color]').content = dark ? '#000000' : '#ffffff';
+  applyFont();
   syncModeButtons();
 }
 
@@ -533,7 +601,7 @@ $('#nextCh').onclick = () => { closePop(); nextChapter(); };
 
 /* Quick settings panel */
 function closePop(){ $('#pop').hidden = true; }
-$('#menuBtn').onclick = e => { e.stopPropagation(); $('#pop').hidden = !$('#pop').hidden; };
+$('#menuBtn').onclick = e => { e.stopPropagation(); $('#pop').hidden = !$('#pop').hidden; if (!$('#pop').hidden) previewFonts(); };
 document.addEventListener('click', e => { if (!$('#pop').hidden && !$('#pop').contains(e.target) && e.target !== $('#menuBtn')) closePop(); });
 document.addEventListener('click', e => {
   if (selectedVerse < 0) return;
@@ -1401,6 +1469,8 @@ if (window.RBSync) {
 }
 
 /* Start */
+buildFontMenu();
+if (S.font !== 'default') loadFont(S.font, [400, 700]);
 applyPrefs();
 initVoiceUi();
 layoutPhoneChrome();

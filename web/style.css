@@ -6,7 +6,7 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #reader{position:fixed;inset:0 0 calc(var(--bar-h) + env(safe-area-inset-bottom)) 0;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;padding:var(--reader-pad-t) var(--reader-pad-r) 40px var(--reader-pad-l);outline:none}
 #title{font:500 23px -apple-system,BlinkMacSystemFont,sans-serif;color:var(--muted);text-align:center;margin:0 0 10px;line-height:1.3}
-#text{font-family:Georgia,"Times New Roman",serif;font-size:var(--fs);line-height:1.35;max-width:none;margin:0 auto;overflow-wrap:anywhere;word-wrap:break-word}
+#text{font-family:var(--bible-font,Georgia,"Times New Roman",serif);font-size:var(--fs);line-height:1.35;max-width:none;margin:0 auto;overflow-wrap:anywhere;word-wrap:break-word}
 #text p{margin:0 0 .3em;display:grid;grid-template-columns:minmax(1.6em,2.4em) minmax(0,1fr);column-gap:.35em;max-width:100%}
 #text .n{color:var(--num);font-size:.7em;font-family:-apple-system,BlinkMacSystemFont,sans-serif;text-align:right;padding-top:.35em;font-variant-numeric:tabular-nums}
 #text p.hl{background:var(--hl);border-radius:4px;box-shadow:inset 3px 0 0 var(--accent)}
@@ -143,7 +143,7 @@ body.modeOn #text p{scroll-margin-top:var(--sticky-hdr,56px)}
 
 /* Commentary / Symfonia — body text tracks S.fs (var(--fs)) with no cap */
 #sheetBody.feat{padding:12px 16px calc(24px + env(safe-area-inset-bottom));overflow:auto;overflow-x:hidden;max-width:100%}
-#featBody{font:var(--fs)/1.5 -apple-system,BlinkMacSystemFont,sans-serif;color:var(--fg);overflow-wrap:anywhere;word-break:break-word;max-width:100%}
+#featBody{font:var(--fs)/1.5 var(--panel-font,-apple-system,BlinkMacSystemFont,sans-serif);color:var(--fg);overflow-wrap:anywhere;word-break:break-word;max-width:100%}
 #featBody .featRef{color:var(--num);font-weight:600;margin:0 0 10px;font-size:calc(var(--fs) * 0.85);overflow-wrap:anywhere;word-break:break-word}
 #featBody .featMuted{color:var(--muted);font-size:calc(var(--fs) * 0.7)}
 #featBody .featText{white-space:pre-wrap;line-height:1.55;overflow-wrap:anywhere;word-break:break-word}
@@ -155,7 +155,7 @@ body.modeOn #text p{scroll-margin-top:var(--sticky-hdr,56px)}
 .simfSeg button.on{background:var(--fg);color:var(--bg)}
 .simfCount{color:var(--muted);font-size:calc(var(--fs) * 0.65);width:100%}
 .simfBook{margin:14px 0 6px;color:var(--num);font-weight:700;font-size:calc(var(--fs) * 0.7);text-transform:uppercase;letter-spacing:.03em;overflow-wrap:anywhere}
-.simfHit{display:block;width:100%;max-width:100%;text-align:left;padding:8px 10px;border-radius:10px;margin:0 0 4px;background:var(--bar);font-size:var(--fs);line-height:1.35;overflow-wrap:anywhere;word-break:break-word;box-sizing:border-box}
+.simfHit{font-family:var(--panel-font,inherit);display:block;width:100%;max-width:100%;text-align:left;padding:8px 10px;border-radius:10px;margin:0 0 4px;background:var(--bar);font-size:var(--fs);line-height:1.35;overflow-wrap:anywhere;word-break:break-word;box-sizing:border-box}
 .simfHit b{color:var(--num);font-weight:700}
 .simfHit .ref{color:var(--muted);font-size:calc(var(--fs) * 0.65);margin-right:6px;overflow-wrap:anywhere;word-break:break-word}
 #text .w{cursor:pointer}
@@ -284,6 +284,8 @@ body.listening #toast{border-color:var(--num)}
     bottom:calc(var(--bar-h) + env(safe-area-inset-bottom));
     border-radius:16px 16px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom));
   }
+  /* keep the tabs under the header reachable while the menu is open */
+  body.phone #pop{max-height:calc(100vh - var(--bar-h) - var(--hdr-h,0px) - env(safe-area-inset-bottom))}
   #sheetClose{font-size:36px;min-width:52px;min-height:52px}
   /* Panels open under the sticky header so the tabs and toggles stay usable (as on iPad) */
   body.phone #sheet{top:var(--hdr-h,0px)}
@@ -314,3 +316,9 @@ body:not(.phone) #slots{background:var(--bg);border:1px solid var(--line);paddin
 body:not(.phone) #slots button{font-size:20px;font-weight:700;height:46px;min-width:46px;padding:0 12px;color:var(--muted);background:var(--bg);box-shadow:none}
 body:not(.phone) #slots button.on{color:var(--fg);background:color-mix(in srgb,var(--fg) 22%,var(--bg))}
 @media (max-width:900px){body:not(.phone) #slots button{padding:0 9px}}
+
+/* Font picker: each choice in its own face */
+#fontSeg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:16px}
+#fontSeg button{text-align:left;padding:7px 10px;border:1px solid var(--line);border-radius:9px;font-size:16px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:40px}
+#fontSeg button .aa{font-size:19px;margin-right:2px}
+#fontSeg button.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
