@@ -20,8 +20,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #slots button.on{color:var(--fg);background:var(--bg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
 #current::after{content:' ▾';font-size:.75em;color:var(--muted)}
 #current{font-size:26px;font-weight:600;padding:4px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:30vw}
-#left{display:flex;align-items:center;gap:4px;justify-self:stretch;min-width:0}
-#left>button{font-size:30px;padding:4px 10px;line-height:1}
+#left{display:flex;align-items:center;gap:22px;justify-self:stretch;min-width:0}
+#left>button{font-size:30px;padding:6px 12px;line-height:1;min-width:48px}
 #player{display:flex;align-items:center;gap:8px;flex:1;min-width:0;margin-left:6px}
 #player[hidden]{display:none}
 #player input{flex:1;accent-color:var(--accent)}
