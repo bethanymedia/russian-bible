@@ -1,7 +1,7 @@
 'use strict';
 const $ = s => document.querySelector(s);
 const KEY = 'rb_state_v1';
-const DEF = { active: 0, slots: [{b:0,c:0,y:0,vi:0,vo:0},{b:18,c:21,y:0,vi:0,vo:0},{b:42,c:0,y:0,vi:0,vo:0}], fs: 24, theme: 'dark', reader: 'kozlov', cont: true, rate: 1, follow: true, lang: 'ru', tr: 'web', trAll: false, mode: '', num: 'syn', tabsV: 2, haWebhook: '' };
+const DEF = { active: 0, slots: [{b:0,c:0,y:0,vi:0,vo:0},{b:18,c:21,y:0,vi:0,vo:0},{b:42,c:0,y:0,vi:0,vo:0}], fs: 24, theme: 'dark', reader: 'kozlov', cont: true, rate: 1, follow: true, lang: 'ru', tr: 'web', trAll: false, mode: '', num: 'syn', tabsV: 2, haWebhook: '', adv: false };
 /* KJV chapter → Synodal chapter for Psalms (1-based). Built from inline markers. */
 const PS_KJV_TO_SYN = {"1":1,"2":2,"3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9,"10":9,"11":10,"12":11,"13":12,"14":13,"15":14,"16":15,"17":16,"18":17,"19":18,"20":19,"21":20,"22":21,"23":22,"24":23,"25":24,"26":25,"27":26,"28":27,"29":28,"30":29,"31":30,"32":31,"33":32,"34":33,"35":34,"36":35,"37":36,"38":37,"39":38,"40":39,"41":40,"42":41,"43":42,"44":43,"45":44,"46":45,"47":46,"48":47,"49":48,"50":49,"51":50,"52":51,"53":52,"54":53,"55":54,"56":55,"57":56,"58":57,"59":58,"60":59,"61":60,"62":61,"63":62,"64":63,"65":64,"66":65,"67":66,"68":67,"69":68,"70":69,"71":70,"72":71,"73":72,"74":73,"75":74,"76":75,"77":76,"78":77,"79":78,"80":79,"81":80,"82":81,"83":82,"84":83,"85":84,"86":85,"87":86,"88":87,"89":88,"90":89,"91":90,"92":91,"93":92,"94":93,"95":94,"96":95,"97":96,"98":97,"99":98,"100":99,"101":100,"102":101,"103":102,"104":103,"105":104,"106":105,"107":106,"108":107,"109":108,"110":109,"111":110,"112":111,"113":112,"114":113,"115":113,"116":114,"117":116,"118":117,"119":118,"120":119,"121":120,"122":121,"123":122,"124":123,"125":124,"126":125,"127":126,"128":127,"129":128,"130":129,"131":130,"132":131,"133":132,"134":133,"135":134,"136":135,"137":136,"138":137,"139":138,"140":139,"141":140,"142":141,"143":142,"144":143,"145":144,"146":145,"147":146,"148":148,"149":149,"150":150};
 
@@ -52,9 +52,9 @@ function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
 let S = load(), BIBLE = null, TIMES = {}, COMM = {}, SIMF = null;
 
 const T = {
- ru:{size:'Размер текста',theme:'Тема',light:'Светлая',dark:'Тёмная',auto:'Авто',reader:'Чтец (аудио)',speed:'Скорость',sleep:'Таймер сна',off:'Выкл',m15:'15 м',m30:'30 м',m60:'60 м',chEnd:'Глава',cont:'Продолжать со следующей главы',follow:'Следить за стихом (Козлов)',trl:'Перевод (English)',about:'О приложении',back:'‹ Назад',done:'Готово',books:'Книги',list:'Список книг',noaudio:'нет аудио',voice:'🎤 Голосовая команда',readerKozlov:'Козлов',readerEfimov:'Ефимов',
+ ru:{size:'Размер текста',theme:'Тема',light:'Светлая',dark:'Тёмная',auto:'Авто',reader:'Чтец (аудио)',speed:'Скорость',sleep:'Таймер сна',off:'Выкл',m15:'15 м',m30:'30 м',m60:'60 м',chEnd:'Глава',cont:'Продолжать со следующей главы',follow:'Следить за стихом (Козлов)',trl:'Перевод (English)',about:'О приложении',back:'‹ Назад',done:'Готово',books:'Книги',list:'Список книг',noaudio:'нет аудио',voice:'🎤 Голосовая команда',adv:'Дополнительно',readerKozlov:'Козлов',readerEfimov:'Ефимов',
   credits:'<p><b>Текст:</b> Синодальный перевод (1876), общественное достояние. Источник: The Unbound Bible (Biola University). Нумерация глав и стихов — синодальная.</p><p><b>Аудио:</b> Игорь Козлов, издательство «Благовестник» (распространяется свободно); файлы: Hugging Face, enochlev/russian-synodal-bible-kozlov.</p><p><b>Аудио:</b> А. Ф. Ефимов, «Благовестник»; файлы: The Audio Power (theaudiopower.org).</p><p>Аудио воспроизводится через интернет.</p><p><b>Перевод:</b> World English Bible, общественное достояние (ebible.org). Английский сопоставлен с синодальной нумерацией.</p><p><b>Толкование:</b> Толковая Библия под ред. А. П. Лопухина и преемников (1904–1913), общественное достояние (OCR).</p>'},
- en:{size:'Text size',theme:'Theme',light:'Light',dark:'Dark',auto:'Auto',reader:'Reader (audio)',speed:'Speed',sleep:'Sleep timer',off:'Off',m15:'15 m',m30:'30 m',m60:'60 m',chEnd:'Chapter',cont:'Continue to next chapter',follow:'Follow the verse (Kozlov)',trl:'Translation (English)',about:'About',back:'‹ Back',done:'Done',books:'Books',list:'Book list',noaudio:'no audio',voice:'🎤 Voice command',readerKozlov:'Kozlov',readerEfimov:'Efimov',
+ en:{size:'Text size',theme:'Theme',light:'Light',dark:'Dark',auto:'Auto',reader:'Reader (audio)',speed:'Speed',sleep:'Sleep timer',off:'Off',m15:'15 m',m30:'30 m',m60:'60 m',chEnd:'Chapter',cont:'Continue to next chapter',follow:'Follow the verse (Kozlov)',trl:'Translation (English)',about:'About',back:'‹ Back',done:'Done',books:'Books',list:'Book list',noaudio:'no audio',voice:'🎤 Voice command',adv:'Extra options',readerKozlov:'Kozlov',readerEfimov:'Efimov',
   credits:'<p><b>Text:</b> Russian Synodal Translation (1876), public domain. Source: The Unbound Bible (Biola University). Chapter and verse numbering follows the Synodal (Russian) tradition.</p><p><b>Audio:</b> Igor Kozlov, Blagovestnik publishers (freely distributed); files: Hugging Face, enochlev/russian-synodal-bible-kozlov.</p><p><b>Audio:</b> A. F. Efimov, Blagovestnik; files: The Audio Power (theaudiopower.org).</p><p>Audio streams over the internet.</p><p><b>Translation:</b> World English Bible, public domain (ebible.org), aligned to Synodal numbering.</p><p><b>Commentary:</b> Lopukhin Explanatory Bible (1904–1913), public domain (OCR).</p>'}};
 const t = k => (T[S.lang] || T.ru)[k];
 const TRS = [{id:'web', file:'data/web.json', label:'English (WEB)'}];
@@ -72,6 +72,8 @@ function applyPrefs(){
   document.querySelectorAll('[data-i]').forEach(e => e.textContent = t(e.dataset.i));
   document.querySelectorAll('#langSeg button').forEach(b => b.classList.toggle('on', b.dataset.l === S.lang));
   $('#contChk').checked = S.cont; $('#followChk').checked = S.follow;
+  if ($('#advChk')) $('#advChk').checked = !!S.adv;
+  syncAdvPanel();
   if ($('#haWebhook')) $('#haWebhook').value = S.haWebhook || '';
   document.querySelectorAll('#rateSeg button').forEach(b => b.classList.toggle('on', +b.dataset.r === S.rate));
   document.querySelectorAll('#sleepSeg button').forEach(b => b.classList.toggle('on', +b.dataset.s === sleepMode));
@@ -80,6 +82,20 @@ function applyPrefs(){
   syncModeButtons();
 }
 
+
+function syncAdvPanel(){
+  const panel = $('#advPanel');
+  if (!panel) return;
+  panel.hidden = !S.adv;
+  /* Voice row stays gated on SpeechRecognition + adv (initVoiceUi sets hidden=false when supported) */
+  const vbtn = $('#voiceBtn');
+  if (vbtn && S.adv) {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    vbtn.hidden = !SR;
+  } else if (vbtn) {
+    vbtn.hidden = true;
+  }
+}
 function syncModeButtons(){
   document.querySelectorAll('.modeBtn').forEach(btn => {
     const on = S.mode === btn.dataset.mode;
@@ -645,6 +661,7 @@ document.querySelectorAll('#sleepSeg button').forEach(b => b.onclick = () => set
 document.querySelectorAll('#rateSeg button').forEach(b => b.onclick = () => { S.rate = +b.dataset.r; audio.defaultPlaybackRate = audio.playbackRate = S.rate; save(); applyPrefs(); });
 $('#contChk').onchange = e => { S.cont = e.target.checked; save(); };
 $('#followChk').onchange = e => { S.follow = e.target.checked; save(); if (!S.follow) clearHL(); };
+if ($('#advChk')) $('#advChk').onchange = e => { S.adv = !!e.target.checked; save(); syncAdvPanel(); };
 if ($('#haWebhook')) $('#haWebhook').onchange = e => { S.haWebhook = String(e.target.value || '').trim(); save(); };
 if ($('#haWebhook')) $('#haWebhook').onkeydown = e => { if (e.key === 'Enter') { e.target.blur(); } };
 
@@ -782,8 +799,8 @@ function initVoiceUi(){
   if (!SR) return;
   const vbtn = $('#voiceBtn');
   if (!vbtn) return;
-  vbtn.hidden = false;
   vbtn.onclick = e => { e.stopPropagation(); closePop(); startListen(); };
+  syncAdvPanel();
 }
 
 /* Deep links: #Ps.22 #John.3.16 #Иоанна.3  and ?play=1 */
