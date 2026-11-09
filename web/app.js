@@ -113,6 +113,35 @@ function syncModeButtons(){
     if (btn.dataset.full) btn.textContent = btn.dataset.full;
   });
   S.trAll = S.mode === 'en';
+  document.body.classList.toggle('modeOn', !!S.mode);
+  updateStickyHdrVar();
+}
+function stickyHdrOffset(){
+  if (!S.mode) return 0;
+  const row = $('#titleRow');
+  return row ? Math.ceil(row.getBoundingClientRect().height) + 6 : 0;
+}
+function updateStickyHdrVar(){
+  const px = stickyHdrOffset();
+  document.documentElement.style.setProperty('--sticky-hdr', px + 'px');
+}
+function scrollVerseIntoPlace(p, opts){
+  opts = opts || {};
+  if (!p) return;
+  const r = $('#reader');
+  const pad = stickyHdrOffset();
+  if (opts.exact != null) {
+    r.scrollTop = Math.max(0, p.offsetTop + (opts.exact|0) - pad);
+    return;
+  }
+  if (opts.block === 'center') {
+    const top = Math.max(0, p.offsetTop - pad - r.clientHeight / 3);
+    r.scrollTo({ top, behavior: opts.behavior || 'smooth' });
+    return;
+  }
+  /* default: ensure visible below sticky header */
+  const top = Math.max(0, p.offsetTop - pad - 8);
+  r.scrollTo({ top, behavior: opts.behavior || 'smooth' });
 }
 
 function setMode(m){
@@ -154,12 +183,14 @@ function showPlayerChrome(){
   $('#player').hidden = false;
   document.body.classList.add('playing');
   updateAudioRefChip();
-  scheduleLayoutAudioBtn();
+  if (BIBLE) renderBar();
+  else scheduleLayoutAudioBtn();
 }
 function hidePlayerChrome(){
   $('#player').hidden = true;
   document.body.classList.remove('playing');
-  scheduleLayoutAudioBtn();
+  if (BIBLE) renderBar();
+  else scheduleLayoutAudioBtn();
 }
 let stoppingAudio = false;
 function syncAudioBtn(){
@@ -241,6 +272,7 @@ function render(keepScroll){
     clearHL();
   }
   syncAudioBtn();
+  updateStickyHdrVar();
   bumpActivity();
 }
 
@@ -250,7 +282,9 @@ function renderBar(){
   const sl = $('#slots'); sl.innerHTML = '';
   S.slots.forEach((s, i) => sl.appendChild(btn(`${book(s.b).a} ${s.c+1}`, () => switchSlot(i), i === S.active ? 'on' : '')));
   const {b, c} = slot();
-  $('#current').textContent = `${book(b).n} ${c+1}`;
+  /* While playing, use short abbr so the seek slider keeps room (no «Псалтирь…») */
+  const playing = document.body.classList.contains('playing');
+  $('#current').textContent = playing ? `${book(b).a} ${c+1}` : `${book(b).n} ${c+1}`;
   const atStart = b === 0 && c === 0;
   const atEnd = b === 65 && c === book(65).c.length - 1;
   $('#prevCh').disabled = atStart;
@@ -326,9 +360,10 @@ function saveScroll(){
 function restoreScroll(){
   const r = $('#reader');
   const s = slot();
+  updateStickyHdrVar();
   const p = document.querySelector('#v' + ((s.vi|0) + 1));
-  if (p) r.scrollTop = Math.max(0, p.offsetTop + (s.vo|0));
-  else r.scrollTop = s.y|0;
+  if (p) scrollVerseIntoPlace(p, { exact: s.vo|0, behavior: 'auto' });
+  else r.scrollTop = Math.max(0, (s.y|0) - stickyHdrOffset());
 }
 $('#reader').addEventListener('scroll', () => { clearTimeout(scrollT); scrollT = setTimeout(saveScroll, 250); bumpActivity(); }, {passive:true});
 window.addEventListener('pagehide', saveScroll);
@@ -551,7 +586,7 @@ function openSimfonia(word, query){
         go(h.b, h.c);
         requestAnimationFrame(() => {
           const p = $('#v'+(h.v+1));
-          if (p) { p.classList.add('flash'); p.scrollIntoView({block:'center'}); setTimeout(() => p.classList.remove('flash'), 1200); }
+          if (p) { p.classList.add('flash'); scrollVerseIntoPlace(p, { block: 'center', behavior: 'smooth' }); setTimeout(() => p.classList.remove('flash'), 1200); }
         });
       };
       list.appendChild(btnEl);
@@ -612,8 +647,7 @@ function playFromVerse(verseIdx){
       if (p) {
         p.classList.add('hl');
         hlIdx = verseIdx;
-        const r = $('#reader'), top = p.offsetTop - r.clientHeight / 3;
-        r.scrollTo({top, behavior: 'smooth'});
+        scrollVerseIntoPlace(p, { block: 'center', behavior: 'smooth' });
       }
       let started = false;
       const go = () => {
@@ -698,8 +732,8 @@ function scheduleLayoutAudioBtn(){
   clearTimeout(layoutAudioT);
   layoutAudioT = setTimeout(layoutAudioBtn, 30);
 }
-window.addEventListener('resize', scheduleLayoutAudioBtn);
-window.addEventListener('orientationchange', () => setTimeout(layoutAudioBtn, 120));
+window.addEventListener('resize', () => { scheduleLayoutAudioBtn(); updateStickyHdrVar(); });
+window.addEventListener('orientationchange', () => setTimeout(() => { layoutAudioBtn(); updateStickyHdrVar(); }, 120));
 
 /* Audio — session (audioBook/audioChap) is independent of the viewed slot */
 const audio = $('#audio');
@@ -731,7 +765,7 @@ function jumpToAudioChapter(){
       clearHL();
       p.classList.add('hl');
       hlIdx = v;
-      p.scrollIntoView({ block: 'center' });
+      scrollVerseIntoPlace(p, { block: 'center', behavior: 'auto' });
     }
     updateAudioRefChip();
     syncAudioBtn();
@@ -915,7 +949,8 @@ function highlight(opts){
   const doScroll = opts.scroll !== false;
   if (!doScroll) return;
   if (selectedVerse >= 0 && selectedVerse !== i && !opts.force) return;
-  const r = $('#reader'), top = p.offsetTop - r.clientHeight / 3;
+  const r = $('#reader'), pad = stickyHdrOffset();
+  const top = Math.max(0, p.offsetTop - pad - r.clientHeight / 3);
   if (Math.abs(r.scrollTop - top) > r.clientHeight / 3) r.scrollTo({top, behavior: opts.instant ? 'auto' : 'smooth'});
 }
 function highlightFromSeek(sec){
@@ -950,7 +985,7 @@ function applyVoiceCmd(cmd){
     if (cmd.verse) {
       requestAnimationFrame(() => {
         const p = $('#v' + cmd.verse);
-        if (p) { p.classList.add('flash'); p.scrollIntoView({block:'center'}); setTimeout(() => p.classList.remove('flash'), 1200); }
+        if (p) { p.classList.add('flash'); scrollVerseIntoPlace(p, { block: 'center', behavior: 'smooth' }); setTimeout(() => p.classList.remove('flash'), 1200); }
       });
     }
     showToast(book(b).n + ' ' + (c+1) + (cmd.verse ? ':' + cmd.verse : ''));
@@ -1039,7 +1074,7 @@ function applyDeepLink(opts){
   if (loc.v) {
     requestAnimationFrame(() => {
       const p = $('#v' + loc.v);
-      if (p) { p.classList.add('flash'); p.scrollIntoView({block:'center'}); setTimeout(() => p.classList.remove('flash'), 1400); }
+      if (p) { p.classList.add('flash'); scrollVerseIntoPlace(p, { block: 'center', behavior: 'smooth' }); setTimeout(() => p.classList.remove('flash'), 1400); }
     });
   }
   if (opts && opts.play) {
