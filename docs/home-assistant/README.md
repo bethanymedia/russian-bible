@@ -20,9 +20,45 @@ Numbering is **Synodal**. Psalm 22 = «Господь – Пастырь мой�
 
 ---
 
-## Cloudflare Tunnel (HTTPS for the webhook)
+## Getting HTTPS for the webhook (start here)
 
-The Bible PWA is served from **HTTPS** (`bethanymedia.github.io`). Browsers block mixed content, so the Home Assistant webhook URL must also be **HTTPS**. This setup uses a **free Cloudflare Tunnel** (not Nabu Casa).
+The Bible PWA is on **HTTPS** (`bethanymedia.github.io`), so the Home Assistant webhook must also be **HTTPS** (browsers block mixed content).
+
+**Recommended path:** start with the **Nabu Casa 1‑month free trial** (fastest), then move to a free option (**Cloudflare Tunnel** or **DuckDNS + Let’s Encrypt**) before the trial bills. Cancel the trial so it does not renew.
+
+When you switch hosts, only the URL in the PWA menu field **Home Assistant** needs to change — the automation id and payload stay the same.
+
+---
+
+## Nabu Casa (1‑month free trial — start here)
+
+1. In Home Assistant: **Settings → Home Assistant Cloud** (Nabu Casa) → create / sign in to an account and **start the free trial**.
+2. Enable **Remote control** so your instance is reachable at:
+   ```text
+   https://<id>.ui.nabu.casa
+   ```
+3. Create the position automation from [webhook_position.yaml](./webhook_position.yaml) (webhook id e.g. `bible_pwa_position`).
+4. Prefer the **Cloud** / **cloudhook** URL for the webhook (Settings → Automations → your automation → webhook, or Home Assistant Cloud → Webhooks). It looks like:
+   ```text
+   https://hooks.nabu.casa/<long-token>
+   ```
+   or the remote form:
+   ```text
+   https://<id>.ui.nabu.casa/api/webhook/bible_pwa_position
+   ```
+   Paste that into the Bible app menu → **Home Assistant**. Leave empty to disable (default — nothing is sent).
+5. **TTS during the trial (optional):** you can use Nabu Casa’s cloud Russian TTS voice with Assist for quick tests.
+6. **TTS that keeps working after the trial:** set up **local Piper** (`ru_RU`, e.g. `ru_RU-irina-medium`) on the Voice Preview Edition / Piper add-on and point the scripts at `tts.piper` (see `scripts.yaml`). Piper does not depend on the Cloud subscription.
+
+### Cancel before it bills
+
+Put a calendar reminder before the trial ends. In the Nabu Casa account / HA Cloud UI, **cancel the subscription** (or do not add a paid plan) so you are not charged. Then switch the app’s webhook URL to Cloudflare Tunnel or DuckDNS (below).
+
+---
+
+## Free long-term option A: Cloudflare Tunnel
+
+No port forwarding; works behind CGNAT.
 
 ### 1. Domain on Cloudflare
 
@@ -31,39 +67,55 @@ The Bible PWA is served from **HTTPS** (`bethanymedia.github.io`). Browsers bloc
 
 ### 2. Cloudflared add-on
 
-In Home Assistant:
-
-1. Settings → Add-ons → Add-on store → search **Cloudflared** (usually the community “Cloudflared” add-on by brenner-tobias, or install via the official Cloudflare docs).
-2. Install, set your domain, create a tunnel, and expose Home Assistant (typically `http://homeassistant.local:8123` or `http://172.30.32.1:8123` as the service URL — follow the add-on README).
-3. Start the add-on and confirm `https://ha.example.com` (your hostname) opens the HA UI.
+1. Settings → Add-ons → Add-on store → search **Cloudflared** (community add-on by brenner-tobias, or follow Cloudflare’s docs).
+2. Install, set your domain, create a tunnel, expose Home Assistant (often `http://homeassistant.local:8123` or `http://172.30.32.1:8123` — follow the add-on README).
+3. Confirm `https://ha.example.com` opens the HA UI.
 
 ### 3. `trusted_proxies` in `configuration.yaml`
-
-Cloudflare (and the add-on) terminate TLS; HA must trust the proxy so client IPs and HTTPS redirects work:
 
 ```yaml
 http:
   use_x_forwarded_for: true
   trusted_proxies:
-    - 172.30.33.0/24          # Home Assistant supervisor / add-on network (adjust if needed)
+    - 172.30.33.0/24          # Supervisor / add-on network (adjust if needed)
     - 127.0.0.1
-    # Optional: Cloudflare IP ranges if you terminate elsewhere —
-    # https://www.cloudflare.com/ips/
+    # Optional: Cloudflare IP ranges — https://www.cloudflare.com/ips/
 ```
 
 Restart Home Assistant after changing this.
 
-### 4. Webhook URL to paste in the Bible app
-
-1. Create an automation from [webhook_position.yaml](./webhook_position.yaml) (or UI → webhook trigger).
-2. Note the webhook id, e.g. `bible_pwa_position`.
-3. Public HTTPS URL shape:
+### 4. Webhook URL in the Bible app
 
 ```text
 https://ha.example.com/api/webhook/bible_pwa_position
 ```
 
-Paste that into the PWA menu field **Home Assistant**. Leave empty to disable (default — nothing is sent).
+Paste into the PWA menu (replaces the Nabu Casa / cloudhook URL when you leave the trial).
+
+---
+
+## Free long-term option B: DuckDNS + Let’s Encrypt
+
+Uses your public IP with a free HTTPS certificate. Needs **port forwarding of TCP 443** (and usually 80 for issuance) to your HA host.
+
+1. Install the **DuckDNS** add-on; create a `something.duckdns.org` subdomain and set your token.
+2. Install **Let’s Encrypt** (or the **Nginx Proxy Manager** / **Duck DNS** combo your install docs recommend) so `https://something.duckdns.org` serves HA with a valid cert.
+3. On your router, forward **443** (and **80** if required for HTTP‑01) to the machine running HA.
+4. **CGNAT caveat:** if your ISP uses carrier-grade NAT, inbound port forwarding will not work. Use **Cloudflare Tunnel** instead (option A).
+5. Webhook URL to paste in the app:
+   ```text
+   https://something.duckdns.org/api/webhook/bible_pwa_position
+   ```
+6. You may still need `http.use_x_forwarded_for` / `trusted_proxies` if a reverse proxy sits in front of HA.
+
+---
+
+## Swapping the webhook URL when you leave the trial
+
+1. Cancel Nabu Casa billing (above).
+2. Bring up Cloudflare Tunnel or DuckDNS HTTPS.
+3. Open the Bible PWA → menu → **Home Assistant** → replace the cloudhook / `ui.nabu.casa` URL with the new HTTPS webhook URL → done.
+4. Keep using **local Piper** for Russian TTS so Assist still speaks verses after Cloud TTS goes away.
 
 ---
 
@@ -138,13 +190,15 @@ https://bethanymedia.github.io/russian-bible/?play=1#Ps.22
 
 ## (a) Two ways to hear a verse
 
-### 1. Local Piper TTS (`ru_RU`) — no Bible audio player
+### 1. TTS in Russian — no Bible audio player
 
-Use **local Piper** on Home Assistant (Voice Preview Edition / Piper add-on), not a cloud TTS and not Nabu Casa cloud voices.
+**During the Nabu Casa trial (optional):** cloud Russian TTS is fine for quick Assist tests.
+
+**Keep using after the trial:** **local Piper** (`ru_RU`, e.g. `ru_RU-irina-medium` / `ru_RU-dmitri-medium`) on the Voice Preview Edition / Piper add-on. Point scripts at `tts.piper`.
 
 1. GET `data/verses/Ps.22.json`
 2. Take `verses[verse-1]`
-3. `tts.speak` with your local Piper entity (e.g. `tts.piper`) and a Russian voice such as `ru_RU-irina-medium` / `ru_RU-dmitri-medium` on the Voice PE satellite or any `media_player`
+3. `tts.speak` on the Voice PE satellite or any `media_player`
 
 See `scripts.yaml` → `bible_tts_verse`.
 
