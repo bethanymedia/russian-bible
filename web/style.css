@@ -68,12 +68,12 @@ body.playing #audioBtn{padding:6px 8px;min-width:40px;margin-right:0}
 #titleRow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;margin:0 0 10px}
 #title{margin:0;text-align:center;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #modeToggles{display:flex;gap:6px;justify-self:end;flex-shrink:0;max-width:58vw;flex-wrap:wrap;justify-content:flex-end}
-.modeBtn{font:500 12px/1.2 -apple-system,BlinkMacSystemFont,sans-serif;padding:5px 9px;border-radius:999px;border:1px solid color-mix(in srgb,var(--muted) 22%,transparent);color:color-mix(in srgb,var(--muted) 48%,transparent);background:transparent;white-space:nowrap;opacity:.78}
+.modeBtn{font:500 15px/1.2 -apple-system,BlinkMacSystemFont,sans-serif;padding:4px 9px;border-radius:999px;border:1px solid color-mix(in srgb,var(--muted) 22%,transparent);color:var(--muted);background:transparent;white-space:nowrap;opacity:1}
 .modeBtn.on{border-color:color-mix(in srgb,var(--num) 40%,transparent);color:color-mix(in srgb,var(--num) 70%,var(--muted));opacity:1}
 @media (max-width:820px){
   #titleRow{grid-template-columns:minmax(0,1fr) auto}
   #title{font-size:13px;text-align:left}
-  .modeBtn{font-size:11px;padding:4px 7px}
+  .modeBtn{font-size:13px;padding:3px 7px}
 }
 #text .tr{grid-column:2;display:block;color:var(--muted);font-size:1em;line-height:1.4;margin-top:.1em}
 #text p{cursor:pointer;-webkit-tap-highlight-color:transparent}
