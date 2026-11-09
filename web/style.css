@@ -6,8 +6,8 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #reader{position:fixed;inset:0 0 calc(64px + env(safe-area-inset-bottom)) 0;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;padding:calc(8px + env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) 40px max(14px,env(safe-area-inset-left));outline:none}
 #title{font:500 15px -apple-system,BlinkMacSystemFont,sans-serif;color:var(--muted);text-align:center;margin:0 0 10px;line-height:30px}
-#text{font-family:Georgia,"Times New Roman",serif;font-size:var(--fs);line-height:1.4;max-width:none;margin:0 auto}
-#text p{margin:0 0 .3em;display:grid;grid-template-columns:1.8em 1fr;column-gap:.4em}
+#text{font-family:Georgia,"Times New Roman",serif;font-size:var(--fs);line-height:1.35;max-width:none;margin:0 auto;overflow-wrap:anywhere;word-wrap:break-word}
+#text p{margin:0 0 .3em;display:grid;grid-template-columns:minmax(1.6em,2.4em) minmax(0,1fr);column-gap:.35em;max-width:100%}
 #text .n{color:var(--num);font-size:.7em;font-family:-apple-system,BlinkMacSystemFont,sans-serif;text-align:right;padding-top:.35em;font-variant-numeric:tabular-nums}
 #text p.hl{background:var(--hl);border-radius:4px;box-shadow:inset 3px 0 0 var(--accent)}
 #text p.sel{background:color-mix(in srgb,var(--num) 14%,transparent);border-radius:6px;outline:1px solid color-mix(in srgb,var(--num) 35%,transparent)}
@@ -16,7 +16,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #audioBtn.jump{color:var(--accent)}
 #loading{text-align:center;color:var(--muted);margin-top:30vh}
 #endnav{max-width:none;margin:28px auto 0;display:flex;gap:18px;justify-content:center;flex-wrap:wrap}
-#endnav button{font-size:28px;padding:10px 26px;border:1px solid var(--line);border-radius:30px;color:var(--accent)}
+#endnav button{font-size:clamp(18px, calc(var(--fs) * 0.55), 36px);padding:10px 22px;border:1px solid var(--line);border-radius:30px;color:var(--accent);max-width:100%;white-space:normal}
 #bar{position:fixed;left:0;right:0;bottom:0;height:calc(64px + env(safe-area-inset-bottom));padding:0 max(10px,env(safe-area-inset-right)) env(safe-area-inset-bottom) max(10px,env(safe-area-inset-left));background:var(--bar);border-top:1px solid var(--line);display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
 #bar>*{min-width:0}
 #slots{display:inline-flex;justify-self:end;background:var(--line);border-radius:9px;padding:2px;gap:0}
@@ -75,7 +75,7 @@ body.playing #audioBtn{padding:6px 8px;min-width:40px;margin-right:0}
   #title{font-size:13px;text-align:left}
   .modeBtn{font-size:13px;padding:3px 7px}
 }
-#text .tr{grid-column:2;display:block;color:var(--muted);font-size:1em;line-height:1.4;margin-top:.1em}
+#text .tr{grid-column:2;display:block;color:var(--muted);font-size:1em;line-height:1.35;margin-top:.1em;overflow-wrap:anywhere;word-wrap:break-word;max-width:100%}
 #text p{cursor:pointer;-webkit-tap-highlight-color:transparent}
 #sheetBack[hidden]{display:block;visibility:hidden}
 .tsts{display:grid;grid-template-columns:39fr 27fr;gap:16px;align-items:start}
@@ -124,8 +124,8 @@ body.playing #audioBtn{padding:6px 8px;min-width:40px;margin-right:0}
 
 /* Commentary / Symfonia feature panel content */
 #sheetBody.feat{padding:12px 16px calc(24px + env(safe-area-inset-bottom));overflow:auto}
-#featBody{font:15px/1.5 -apple-system,BlinkMacSystemFont,sans-serif;color:var(--fg)}
-#featBody .featRef{color:var(--num);font-weight:600;margin:0 0 10px;font-size:16px}
+#featBody{font:clamp(15px, calc(var(--fs) * 0.5), 28px)/1.5 -apple-system,BlinkMacSystemFont,sans-serif;color:var(--fg);overflow-wrap:anywhere}
+#featBody .featRef{color:var(--num);font-weight:600;margin:0 0 10px;font-size:clamp(16px, calc(var(--fs) * 0.45), 24px)}
 #featBody .featMuted{color:var(--muted);font-size:14px}
 #featBody .featText{white-space:pre-wrap;line-height:1.55}
 #featBody .featSrc{margin-top:16px;color:var(--muted);font-size:12px}
@@ -136,7 +136,7 @@ body.playing #audioBtn{padding:6px 8px;min-width:40px;margin-right:0}
 .simfSeg button.on{background:var(--fg);color:var(--bg)}
 .simfCount{color:var(--muted);font-size:13px;width:100%}
 .simfBook{margin:14px 0 6px;color:var(--num);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.03em}
-.simfHit{display:block;width:100%;text-align:left;padding:8px 10px;border-radius:10px;margin:0 0 4px;background:var(--bar);font-size:14px;line-height:1.35}
+.simfHit{display:block;width:100%;text-align:left;padding:8px 10px;border-radius:10px;margin:0 0 4px;background:var(--bar);font-size:clamp(14px, calc(var(--fs) * 0.4), 22px);line-height:1.35;overflow-wrap:anywhere}
 .simfHit b{color:var(--num);font-weight:700}
 .simfHit .ref{color:var(--muted);font-size:12px;margin-right:6px}
 #text .w{cursor:pointer}

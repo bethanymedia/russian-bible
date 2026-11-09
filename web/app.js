@@ -30,6 +30,11 @@ function migrateState(s){
     s.active = 0;
     s.tabsV = 2;
   }
+  /* Text size: 18–64 step 2 (was 14–40) */
+  let fs = +s.fs || DEF.fs;
+  if (fs < 18) fs = 18;
+  if (fs > 64) fs = 64;
+  s.fs = Math.round(fs / 2) * 2;
   return s;
 }
 function load(){
@@ -47,9 +52,9 @@ function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
 let S = load(), BIBLE = null, TIMES = {}, COMM = {}, SIMF = null;
 
 const T = {
- ru:{size:'Размер текста',theme:'Тема',light:'Светлая',dark:'Тёмная',auto:'Авто',reader:'Чтец (аудио)',speed:'Скорость',sleep:'Таймер сна',off:'Выкл',m15:'15 м',m30:'30 м',m60:'60 м',chEnd:'Глава',cont:'Продолжать со следующей главы',follow:'Следить за стихом (Козлов)',trl:'Перевод (English)',about:'О приложении',back:'‹ Назад',done:'Готово',books:'Книги',list:'Список книг',noaudio:'нет аудио',voice:'🎤 Голосовая команда',
+ ru:{size:'Размер текста',theme:'Тема',light:'Светлая',dark:'Тёмная',auto:'Авто',reader:'Чтец (аудио)',speed:'Скорость',sleep:'Таймер сна',off:'Выкл',m15:'15 м',m30:'30 м',m60:'60 м',chEnd:'Глава',cont:'Продолжать со следующей главы',follow:'Следить за стихом (Козлов)',trl:'Перевод (English)',about:'О приложении',back:'‹ Назад',done:'Готово',books:'Книги',list:'Список книг',noaudio:'нет аудио',voice:'🎤 Голосовая команда',readerKozlov:'Козлов',readerEfimov:'Ефимов',
   credits:'<p><b>Текст:</b> Синодальный перевод (1876), общественное достояние. Источник: The Unbound Bible (Biola University). Нумерация глав и стихов — синодальная.</p><p><b>Аудио:</b> Игорь Козлов, издательство «Благовестник» (распространяется свободно); файлы: Hugging Face, enochlev/russian-synodal-bible-kozlov.</p><p><b>Аудио:</b> А. Ф. Ефимов, «Благовестник»; файлы: The Audio Power (theaudiopower.org).</p><p>Аудио воспроизводится через интернет.</p><p><b>Перевод:</b> World English Bible, общественное достояние (ebible.org). Английский сопоставлен с синодальной нумерацией.</p><p><b>Толкование:</b> Толковая Библия под ред. А. П. Лопухина и преемников (1904–1913), общественное достояние (OCR).</p>'},
- en:{size:'Text size',theme:'Theme',light:'Light',dark:'Dark',auto:'Auto',reader:'Reader (audio)',speed:'Speed',sleep:'Sleep timer',off:'Off',m15:'15 m',m30:'30 m',m60:'60 m',chEnd:'Chapter',cont:'Continue to next chapter',follow:'Follow the verse (Kozlov)',trl:'Translation (English)',about:'About',back:'‹ Back',done:'Done',books:'Books',list:'Book list',noaudio:'no audio',voice:'🎤 Voice command',
+ en:{size:'Text size',theme:'Theme',light:'Light',dark:'Dark',auto:'Auto',reader:'Reader (audio)',speed:'Speed',sleep:'Sleep timer',off:'Off',m15:'15 m',m30:'30 m',m60:'60 m',chEnd:'Chapter',cont:'Continue to next chapter',follow:'Follow the verse (Kozlov)',trl:'Translation (English)',about:'About',back:'‹ Back',done:'Done',books:'Books',list:'Book list',noaudio:'no audio',voice:'🎤 Voice command',readerKozlov:'Kozlov',readerEfimov:'Efimov',
   credits:'<p><b>Text:</b> Russian Synodal Translation (1876), public domain. Source: The Unbound Bible (Biola University). Chapter and verse numbering follows the Synodal (Russian) tradition.</p><p><b>Audio:</b> Igor Kozlov, Blagovestnik publishers (freely distributed); files: Hugging Face, enochlev/russian-synodal-bible-kozlov.</p><p><b>Audio:</b> A. F. Efimov, Blagovestnik; files: The Audio Power (theaudiopower.org).</p><p>Audio streams over the internet.</p><p><b>Translation:</b> World English Bible, public domain (ebible.org), aligned to Synodal numbering.</p><p><b>Commentary:</b> Lopukhin Explanatory Bible (1904–1913), public domain (OCR).</p>'}};
 const t = k => (T[S.lang] || T.ru)[k];
 const TRS = [{id:'web', file:'data/web.json', label:'English (WEB)'}];
@@ -63,7 +68,7 @@ function applyPrefs(){
   document.documentElement.style.setProperty('--fs', S.fs + 'px');
   $('#fsRange').value = S.fs;
   document.querySelectorAll('#themeSeg button').forEach(b => b.classList.toggle('on', b.dataset.t === S.theme));
-  $('#readerSel').value = S.reader; if ($('#trSel').options.length) $('#trSel').value = S.tr;
+  document.querySelectorAll('#readerSeg button').forEach(b => b.classList.toggle('on', b.dataset.r === S.reader)); if ($('#trSel').options.length) $('#trSel').value = S.tr;
   document.querySelectorAll('[data-i]').forEach(e => e.textContent = t(e.dataset.i));
   document.querySelectorAll('#langSeg button').forEach(b => b.classList.toggle('on', b.dataset.l === S.lang));
   $('#contChk').checked = S.cont; $('#followChk').checked = S.follow;
@@ -328,10 +333,47 @@ document.querySelectorAll('#langSeg button').forEach(b => b.onclick = () => { S.
 document.querySelectorAll('.modeBtn').forEach(b => b.onclick = () => setMode(b.dataset.mode));
 $('#trSel').innerHTML = TRS.map(x => `<option value="${x.id}">${x.label}</option>`).join('');
 $('#trSel').onchange = e => { S.tr = e.target.value; save(); hideAll(); if (S.mode === 'en') showAll(); };
-$('#fsRange').oninput = e => { S.fs = +e.target.value; save(); applyPrefs(); };
+$('#fsRange').oninput = e => { S.fs = Math.min(64, Math.max(18, +e.target.value)); save(); applyPrefs(); };
 document.querySelectorAll('#themeSeg button').forEach(b => b.onclick = () => { S.theme = b.dataset.t; save(); applyPrefs(); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyPrefs);
-$('#readerSel').onchange = e => { const was = !audio.paused; S.reader = e.target.value; save(); loadAudio(); if (was) audio.play().catch(()=>{}); };
+function switchReader(next){
+  if (!next || next === S.reader) return;
+  const wasPlaying = !$('#player').hidden && !audio.paused;
+  const playerOpen = !$('#player').hidden;
+  const {b, c} = slot();
+  let verseIdx = selectedVerse >= 0 ? selectedVerse
+    : (hlIdx >= 0 ? hlIdx
+    : (verseIndexAtTime() >= 0 ? verseIndexAtTime() : lastFollowVerse));
+  if (verseIdx < 0) verseIdx = 0;
+  lastFollowVerse = verseIdx;
+  S.reader = next;
+  save();
+  applyPrefs();
+  if (!playerOpen && !wasPlaying) return;
+  /* Keep player open; load new reader and continue */
+  $('#player').hidden = false;
+  document.body.classList.add('playing');
+  loadAudio();
+  const start = () => {
+    let seek = 0;
+    if (S.reader === 'kozlov') {
+      const st = TIMES[book(b).o + '.' + (c + 1)];
+      if (st && st.length === book(b).c[c].length && verseIdx < st.length)
+        seek = st[verseIdx] / 1000;
+    }
+    try { audio.currentTime = seek; } catch(e){}
+    const play = () => {
+      if (wasPlaying || playerOpen) audio.play().catch(()=>{});
+      if (S.follow && S.reader === 'kozlov') highlight({ force: true, time: seek, scroll: true, instant: true });
+      syncAudioBtn();
+      bumpActivity();
+    };
+    play();
+  };
+  if (audio.readyState >= 1) start();
+  else audio.addEventListener('loadedmetadata', start, { once: true });
+}
+document.querySelectorAll('#readerSeg button').forEach(b => b.onclick = () => switchReader(b.dataset.r));
 $('#aboutBtn').onclick = () => {
   openSheet(t('about'));
   $('#sheetBody').innerHTML = '<div class="credits">' + t('credits') + '</div>';
@@ -518,6 +560,7 @@ function playFromVerse(verseIdx){
     const apply = () => {
       try { audio.currentTime = seekSec; } catch(e){}
       clearVerseSelection();
+      lastFollowVerse = verseIdx;
       hlIdx = -1;
       clearHL();
       const p = $('#v' + (verseIdx + 1));
@@ -637,7 +680,7 @@ audio.onended = () => {
   if (c < book(b).c.length - 1) { autoNext = true; go(b, c+1); }
   else if (b < 65) { autoNext = true; go(b+1, 0); }
 };
-let hlIdx = -1, hlSeekT = 0;
+let hlIdx = -1, hlSeekT = 0, lastFollowVerse = 0;
 function clearHL(){ const p = document.querySelector('#text p.hl'); if (p) p.classList.remove('hl'); hlIdx = -1; }
 function verseIndexAtTime(sec){
   if (S.reader !== 'kozlov') return -1;
@@ -657,6 +700,7 @@ function highlight(opts){
   if (i === hlIdx && !opts.force) return;
   clearHL(); hlIdx = i;
   if (i < 0) return;
+  lastFollowVerse = i;
   const p = $('#v' + (i+1));
   if (!p) return;
   p.classList.add('hl');
