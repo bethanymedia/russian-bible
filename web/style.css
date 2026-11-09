@@ -1,4 +1,4 @@
-:root{--text:var(--fg);--head:var(--num);--sel-bg:color-mix(in srgb,var(--num) 14%,transparent);--sel-ring:1px solid color-mix(in srgb,var(--num) 35%,transparent);--selhl-bg:var(--hl);--selhl-ring:1px solid color-mix(in srgb,var(--num) 45%,transparent);--ip-glyph:inline;--ip-svg:none;--ip-color:var(--num);--ot:#B7791F;--nt:#00875A;--num:#00875A;--bg:#fff;--fg:#1c1c1e;--muted:#8e8e93;--line:#e5e5ea;--bar:#f9f9f9;--accent:#0a66d8;--hl:#fff3b0;--fs:20px;--bar-icon:color-mix(in srgb,var(--fg) 55%,var(--muted));--seek-track:color-mix(in srgb,var(--muted) 55%,var(--line));--seek-fill:color-mix(in srgb,var(--muted) 75%,var(--fg));--seek-thumb:color-mix(in srgb,var(--muted) 70%,var(--fg));--reader-pad-t:calc(8px + env(safe-area-inset-top));--reader-pad-r:max(14px,env(safe-area-inset-right));--reader-pad-l:max(52px,calc(env(safe-area-inset-left) + 48px));--bar-h:64px}
+:root{--text:var(--fg);--head:var(--num);--sel-bg:#D6E4F2;--sel-ring:none;--selhl-bg:#D6E4F2;--selhl-ring:none;--ip-glyph:none;--ip-svg:block;--ip-color:#555;--ot:#B7791F;--nt:#00875A;--num:#00875A;--bg:#fff;--fg:#1c1c1e;--muted:#8e8e93;--line:#e5e5ea;--bar:#f9f9f9;--accent:#0a66d8;--hl:#fff3b0;--fs:20px;--bar-icon:color-mix(in srgb,var(--fg) 55%,var(--muted));--seek-track:color-mix(in srgb,var(--muted) 55%,var(--line));--seek-fill:color-mix(in srgb,var(--muted) 75%,var(--fg));--seek-thumb:color-mix(in srgb,var(--muted) 70%,var(--fg));--reader-pad-t:calc(8px + env(safe-area-inset-top));--reader-pad-r:max(14px,env(safe-area-inset-right));--reader-pad-l:max(52px,calc(env(safe-area-inset-left) + 48px));--bar-h:64px}
 :root[data-theme=dark]{--ot:#E3B341;--nt:#34D399;--num:#34D399;--bg:#121212;--fg:#e5e5e7;--muted:#8e8e93;--line:#2e2e30;--bar:#1b1b1d;--text:#CFCFCF;--head:#CFCFCF;--sel-bg:#19334D;--sel-ring:none;--selhl-bg:#19334D;--selhl-ring:none;--ip-glyph:none;--ip-svg:block;--ip-color:#CFCFCF;--accent:#4c9bff;--hl:#3a3410;--bar-icon:color-mix(in srgb,var(--fg) 50%,var(--muted));--seek-track:color-mix(in srgb,var(--muted) 45%,var(--line));--seek-fill:color-mix(in srgb,var(--muted) 80%,var(--fg));--seek-thumb:color-mix(in srgb,var(--muted) 65%,var(--fg))}
 @media (prefers-color-scheme:dark){:root[data-theme=system]{--ot:#E3B341;--nt:#34D399;--num:#34D399;--bg:#121212;--fg:#e5e5e7;--muted:#8e8e93;--line:#2e2e30;--bar:#1b1b1d;--text:#CFCFCF;--head:#CFCFCF;--sel-bg:#19334D;--sel-ring:none;--selhl-bg:#19334D;--selhl-ring:none;--ip-glyph:none;--ip-svg:block;--ip-color:#CFCFCF;--accent:#4c9bff;--hl:#3a3410;--bar-icon:color-mix(in srgb,var(--fg) 50%,var(--muted));--seek-track:color-mix(in srgb,var(--muted) 45%,var(--line));--seek-fill:color-mix(in srgb,var(--muted) 80%,var(--fg));--seek-thumb:color-mix(in srgb,var(--muted) 65%,var(--fg))}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -123,6 +123,14 @@ body.modeOn #text p{scroll-margin-top:var(--sticky-hdr,56px)}
 .pk .tst{overflow:auto;margin:0;padding:4px 8px 10px;min-height:0}
 .pk .tst.ot{grid-area:ot}.pk .tst.nt{grid-area:nt}.pk .chc{grid-area:ch}
 .pk .tst .sec{font-size:17px}
+/* Picker without a title row: header hidden, ✕ sits at the right end of the top-right testament heading (sticky, no extra height) */
+#sheet.pkOpen #sheetHead{display:none}
+#sheet.pkOpen .pk{padding-top:6px}
+#sheet.pkOpen .pk .tst .sec{margin-top:4px}
+.pk .tst .sec{position:sticky;top:-4px;z-index:2;background:var(--bg);display:flex;align-items:center;justify-content:space-between;gap:6px}
+.pk .pkX{display:none;flex:none;width:44px;height:44px;margin:-12px -6px -12px 0;padding:0;border:0;background:transparent;color:var(--fg);opacity:.75;font-size:22px;line-height:1;font-weight:400;align-items:center;justify-content:center}
+@media (orientation:landscape){.pk .nt .pkX{display:flex}}
+@media (orientation:portrait){.pk .ot .pkX{display:flex}}
 .pk .books{display:block;column-gap:8px}
 .pk .ot .books{column-count:3}.pk .nt .books{column-count:2}
 .pk .grp{margin-bottom:8px;padding:5px;border:2px solid color-mix(in srgb,var(--fg) 40%,transparent);border-radius:12px;-webkit-box-decoration-break:clone;box-decoration-break:clone}

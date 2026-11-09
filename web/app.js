@@ -157,9 +157,9 @@ let fontPreviewed = false;
 function previewFonts(){ if (fontPreviewed) return; fontPreviewed = true; FONTS.forEach(f => loadFont(f.id, [400])); }
 
 const T = {
- ru:{size:'Размер текста',font:'Шрифт',theme:'Тема',light:'Светлая',dark:'Тёмная',auto:'Авто',reader:'Чтец (аудио)',speed:'Скорость',sleep:'Таймер сна',off:'Выкл',m15:'15 м',m30:'30 м',m60:'60 м',chEnd:'Глава',cont:'Продолжать со следующей главы',follow:'Следить за стихом (Козлов)',trl:'Перевод (English)',about:'О приложении',back:'‹ Назад',done:'Готово',books:'Книги',list:'Список книг',noaudio:'нет аудио',voice:'🎤 Голосовая команда',adv:'Дополнительно',sync:'Синхронизация (Google)',syncOn:'Вкл',syncOut:'Выйти',syncOff:'Не настроено',syncSigned:'Вход выполнен',readerKozlov:'Козлов',readerEfimov:'Ефимов',
+ ru:{size:'Размер текста',font:'Шрифт',theme:'Тема',light:'Светлая',dark:'Тёмная',auto:'Авто',reader:'Чтец (аудио)',speed:'Скорость',sleep:'Таймер сна',off:'Выкл',m15:'15 м',m30:'30 м',m60:'60 м',chEnd:'Глава',cont:'Продолжать со следующей главы',follow:'Следить за стихом (Козлов)',trl:'Перевод (English)',about:'О приложении',back:'‹ Назад',done:'Готово',books:'Книги',close:'Закрыть',list:'Список книг',noaudio:'нет аудио',voice:'🎤 Голосовая команда',adv:'Дополнительно',sync:'Синхронизация (Google)',syncOn:'Вкл',syncOut:'Выйти',syncOff:'Не настроено',syncSigned:'Вход выполнен',readerKozlov:'Козлов',readerEfimov:'Ефимов',
   credits:'<p><b>Текст:</b> Синодальный перевод (1876), общественное достояние. Источник: The Unbound Bible (Biola University). Нумерация глав и стихов — синодальная.</p><p><b>Аудио:</b> Игорь Козлов, издательство «Благовестник» (распространяется свободно); файлы: Hugging Face, enochlev/russian-synodal-bible-kozlov.</p><p><b>Аудио:</b> А. Ф. Ефимов, «Благовестник»; файлы: The Audio Power (theaudiopower.org).</p><p>Аудио воспроизводится через интернет.</p><p><b>Перевод:</b> World English Bible, общественное достояние (ebible.org). Английский сопоставлен с синодальной нумерацией.</p><p><b>Толкование:</b> Толковая Библия под ред. А. П. Лопухина и преемников (1904–1913), общественное достояние (OCR).</p><p><b>Шрифты:</b> PT Serif, PT Sans (ParaType), Literata, Noto Serif, Noto Sans — SIL Open Font License 1.1; файлы лицензий в fonts/.</p>'},
- en:{size:'Text size',font:'Font',theme:'Theme',light:'Light',dark:'Dark',auto:'Auto',reader:'Reader (audio)',speed:'Speed',sleep:'Sleep timer',off:'Off',m15:'15 m',m30:'30 m',m60:'60 m',chEnd:'Chapter',cont:'Continue to next chapter',follow:'Follow the verse (Kozlov)',trl:'Translation (English)',about:'About',back:'‹ Back',done:'Done',books:'Books',list:'Book list',noaudio:'no audio',voice:'🎤 Voice command',adv:'Extra options',sync:'Sync (Google)',syncOn:'On',syncOut:'Sign out',syncOff:'Not configured',syncSigned:'Signed in',readerKozlov:'Kozlov',readerEfimov:'Efimov',
+ en:{size:'Text size',font:'Font',theme:'Theme',light:'Light',dark:'Dark',auto:'Auto',reader:'Reader (audio)',speed:'Speed',sleep:'Sleep timer',off:'Off',m15:'15 m',m30:'30 m',m60:'60 m',chEnd:'Chapter',cont:'Continue to next chapter',follow:'Follow the verse (Kozlov)',trl:'Translation (English)',about:'About',back:'‹ Back',done:'Done',books:'Books',close:'Close',list:'Book list',noaudio:'no audio',voice:'🎤 Voice command',adv:'Extra options',sync:'Sync (Google)',syncOn:'On',syncOut:'Sign out',syncOff:'Not configured',syncSigned:'Signed in',readerKozlov:'Kozlov',readerEfimov:'Efimov',
   credits:'<p><b>Text:</b> Russian Synodal Translation (1876), public domain. Source: The Unbound Bible (Biola University). Chapter and verse numbering follows the Synodal (Russian) tradition.</p><p><b>Audio:</b> Igor Kozlov, Blagovestnik publishers (freely distributed); files: Hugging Face, enochlev/russian-synodal-bible-kozlov.</p><p><b>Audio:</b> A. F. Efimov, Blagovestnik; files: The Audio Power (theaudiopower.org).</p><p>Audio streams over the internet.</p><p><b>Translation:</b> World English Bible, public domain (ebible.org), aligned to Synodal numbering.</p><p><b>Commentary:</b> Lopukhin Explanatory Bible (1904–1913), public domain (OCR).</p><p><b>Fonts:</b> PT Serif, PT Sans (ParaType), Literata, Noto Serif, Noto Sans — SIL Open Font License 1.1; license files in fonts/.</p>'}};
 const t = k => (T[S.lang] || T.ru)[k];
 const TRS = [{id:'web', file:'data/web.json', label:'English (WEB)'}];
@@ -556,8 +556,8 @@ document.addEventListener('visibilitychange', () => {
 });
 
 /* Book and chapter picker */
-function openSheet(title, back){ $('#sheet').hidden = false; $('#sheetTitle').textContent = title; $('#sheetBack').hidden = !back; $('#sheetBack').onclick = back || null; $('#sheetBody').scrollTop = 0; $('#sheetBody').className = ''; closePop(); }
-function closeSheet(){ $('#sheet').hidden = true; $('#sheetBody').className = ''; }
+function openSheet(title, back){ $('#sheet').hidden = false; $('#sheet').classList.remove('pkOpen'); $('#sheetTitle').textContent = title; $('#sheetBack').hidden = !back; $('#sheetBack').onclick = back || null; $('#sheetBody').scrollTop = 0; $('#sheetBody').className = ''; closePop(); }
+function closeSheet(){ $('#sheet').hidden = true; $('#sheet').classList.remove('pkOpen'); $('#sheetBody').className = ''; }
 $('#sheetClose').onclick = closeSheet;
 
 const GROUPS = [[0,5],[5,17],[17,22],[22,27],[27,39],[39,43],[43,44],[44,58],[58,65],[65,66]];
@@ -566,6 +566,7 @@ function openBooks(){
   if (!$('#sheet').hidden && $('#sheetBody').classList.contains('pkb')) { closeSheet(); return; }
   openSheet(t('books'));
   const body = $('#sheetBody'); body.innerHTML = ''; body.className = 'pkb';
+  $('#sheet').classList.add('pkOpen'); /* no title row: lists start at the top; ✕ rides in a testament header */
   const pk = document.createElement('div'); pk.className = 'pk'; body.appendChild(pk);
   const ch = document.createElement('div'); ch.className = 'chc';
   const fill = (b) => {
@@ -579,7 +580,10 @@ function openBooks(){
   };
   [['Ветхий Завет', 0, 39, 'ot'], ['Новый Завет', 39, 66, 'nt']].forEach(([name, a, z, k]) => {
     const box = document.createElement('div'); box.className = 'tst ' + k;
-    const h = document.createElement('div'); h.className = 'sec'; h.textContent = name; box.appendChild(h);
+    const h = document.createElement('div'); h.className = 'sec';
+    const nm = document.createElement('span'); nm.textContent = name; h.appendChild(nm);
+    const x = btn('✕', closeSheet, 'pkX'); x.type = 'button'; x.setAttribute('aria-label', t('close')); h.appendChild(x);
+    box.appendChild(h);
     const cols = document.createElement('div'); cols.className = 'books';
     GROUPS.filter(([ga]) => ga >= a && ga < z).forEach(([ga, gz]) => {
       const g = document.createElement('div'); g.className = 'grp';

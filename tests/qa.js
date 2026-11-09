@@ -23,20 +23,45 @@ const VIEWPORTS = {
 const PHONES = ['ph360', 'ph390', 'ph412', 'phL'];
 
 /* ---------- static server (optionally rewrites sw.js version) ---------- */
-let swOverride = null;
+let swOverride = null, pagesCache = false, cssMarker = '', serverDown = false;
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
 const server = http.createServer((req, res) => {
   const u = new URL(req.url, 'http://x');
   if (u.pathname === '/__blank') { res.writeHead(200, { 'content-type': 'text/html' }); return res.end('<!doctype html><title>blank</title>'); }
+  if (serverDown) return req.socket.destroy();
   let p = path.join(WEB, decodeURIComponent(u.pathname));
   if (!p.startsWith(WEB)) { res.writeHead(403); return res.end(); }
   if (fs.existsSync(p) && fs.statSync(p).isDirectory()) p = path.join(p, 'index.html');
   if (!fs.existsSync(p)) { res.writeHead(404); return res.end('nf'); }
   let body = fs.readFileSync(p);
   if (swOverride && u.pathname.endsWith('/sw.js')) body = Buffer.from(String(body).replace(/const V = '[^']+'/, `const V = '${swOverride}'`));
-  res.writeHead(200, { 'content-type': TYPES[path.extname(p)] || 'application/octet-stream', 'cache-control': 'no-store' });
+  if (cssMarker && u.pathname.endsWith('/style.css')) body = Buffer.concat([body, Buffer.from('\n/*' + cssMarker + '*/')]);
+  /* pagesCache: mimic GitHub Pages (max-age=600 + ETag) to catch HTTP-cache staleness */
+  const etag = '"' + body.length + '-' + (cssMarker || '0') + '"';
+  if (pagesCache && req.headers['if-none-match'] === etag) { res.writeHead(304, { etag, 'cache-control': 'max-age=600' }); return res.end(); }
+  res.writeHead(200, { 'content-type': TYPES[path.extname(p)] || 'application/octet-stream', 'cache-control': pagesCache ? 'max-age=600' : 'no-store', ...(pagesCache ? { etag } : {}) });
   res.end(body);
 });
+
+/* ---------- book picker v2 helpers ---------- */
+async function tapPickerX(page){
+  const sel = await page.evaluate(() => { const x = [...document.querySelectorAll('.pk .pkX')].find(e => e.offsetParent); if (!x) return null; x.id = 'pkXvis'; return '#pkXvis'; });
+  if (!sel) return check('picker ✕ visible', false);
+  await tap(page, sel); await wait(120);
+}
+async function pickerV2(page, vp){
+  const g = await page.evaluate(() => {
+    const sh = $('#sheet').getBoundingClientRect(), xs = [...document.querySelectorAll('.pk .pkX')].filter(e => e.offsetParent), ot = document.querySelector('.pk .ot .sec').getBoundingClientRect(), nt = document.querySelector('.pk .nt .sec').getBoundingClientRect();
+    const x = xs[0] && xs[0].getBoundingClientRect(), colR = xs[0] ? xs[0].closest('.tst').getBoundingClientRect().right : 0, hdr = document.querySelector('header, #hdr, #titleRow');
+    return { colR, head: getComputedStyle($('#sheetHead')).display, title: $('#sheetTitle').offsetParent ? $('#sheetTitle').textContent : '', nX: xs.length, sheetTop: sh.top, otTop: ot.top, ntTop: nt.top, otH: ot.height, x: x && { l: x.left, r: x.right, t: x.top, b: x.bottom, w: x.width, h: x.height }, sheetR: sh.right, hdrH: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hdr-h')) || 0, phone: document.body.classList.contains('phone'), txt: document.querySelector('#sheet').innerText.split('\n').filter(l => l.trim() === 'Книги').length };
+  });
+  check(vp + ' picker: no «Книги» title / header row', g.head === 'none' && !g.title && g.txt === 0, g);
+  check(vp + ' picker: lists start at the sheet top', g.otTop - g.sheetTop <= 18 && (g.ntTop - g.sheetTop <= 18 || g.ntTop > g.otTop + 100), g);
+  check(vp + ' picker: one ✕, ≥44px, at the top, right end of the top-right list', g.nX === 1 && g.x && g.x.w >= 44 && g.x.h >= 44 && g.x.r >= g.colR - 16 && g.x.r <= g.colR + 1 && g.x.t - g.sheetTop <= 10, g);
+  check(vp + ' picker: ✕ adds no height to its heading', g.otH <= 40, g.otH);
+  if (g.phone) check(vp + ' picker: phone sheet stays under frozen header', Math.abs(g.sheetTop - g.hdrH) <= 1 && g.hdrH > 0, g);
+  if (vp === 'ipadL' || vp === 'ipadP') await page.screenshot({ path: vp === 'ipadL' ? '/workspace/shots/picker-v2.png' : '/workspace/shots/picker-v2-portrait.png' });
+}
 
 /* ---------- reporting ---------- */
 const results = [];
@@ -130,7 +155,7 @@ function layoutProbe(){
   const sh = document.querySelector('#sheet');
   if (shown(sh)) {
     const r = R(sh); if (r.bottom > bar.top + 1) issues.push('sheet over bar');
-    ['#sheetClose', '#sheetTitle'].forEach(s => { const e = document.querySelector(s); if (shown(e)) inView(e); });
+    ['#sheetClose', '#sheetTitle', '.pk .pkX'].forEach(s => { const e = document.querySelector(s); if (shown(e)) inView(e); });
     const body = document.querySelector('#sheetBody'); if (body.scrollWidth > body.clientWidth + 1) issues.push('sheet body h-overflow ' + body.scrollWidth + '>' + body.clientWidth);
     document.querySelectorAll('.pk .tst, .pk .chc').forEach(e => { const q = R(e); if (q.width < 60 || q.height < 60) issues.push('picker pane tiny ' + name(e)); if (q.right > W + 1 || q.bottom > bar.top + 1) issues.push('picker pane out ' + name(e)); });
   }
@@ -512,7 +537,7 @@ GROUPS.nav = async () => {
     s = await st(page); check(vp + ' tab with menu open closes menu', !s.pop && s.active === 0, s);
     await tap(page, '#menuBtn'); await wait(50); await tap(page, '#current'); await wait(80);
     s = await st(page); check(vp + ' Книги with menu open: menu closes, picker opens', !s.pop && s.sheet === 'pkb', s);
-    await clickSel(page, '#sheetClose');
+    await tapPickerX(page); s = await st(page); check(vp + ' picker ✕ closes it', s.sheet !== 'pkb' && await ev(page, () => $('#sheet').hidden), s);
     await tap(page, '#menuBtn'); await wait(30); await tap(page, '#menuBtn'); await wait(30);
     s = await st(page); check(vp + ' ☰ toggles menu closed', !s.pop, s);
     /* arrows: rapid taps advance one chapter per 400ms, edges disabled */
@@ -668,6 +693,23 @@ GROUPS.sw = async () => {
   await wait(500);
   check('font files cached at runtime by the SW', await page.evaluate(() => caches.match('fonts/pt-sans/cyrillic-400.woff2').then(r => !!r)));
   check('fonts not precached', !String(fs.readFileSync(path.join(WEB, 'sw.js'))).match(/FILES = \[[^\]]*fonts/));
+  /* GitHub Pages max-age=600: a deploy must show on the next load, not 10 minutes later */
+  pagesCache = true; cssMarker = 'deployA';
+  await page.reload({ waitUntil: 'domcontentloaded' }); await wait(300);
+  const cssA = await page.evaluate(() => fetch('style.css').then(r => r.text()));
+  check('SW serves CSS (HTTP-cacheable response)', cssA.includes('deployA'));
+  cssMarker = 'deployB';
+  await page.reload({ waitUntil: 'domcontentloaded' }); await wait(300);
+  const cssB = await page.evaluate(() => fetch('style.css').then(r => r.text()));
+  const sheetB = await page.evaluate(() => caches.match('style.css', {ignoreSearch: true}).then(r => r && r.text()));
+  check('new CSS shows on next load despite max-age=600', cssB.includes('deployB') && !cssB.includes('deployA'), cssB.slice(-30));
+  check('SW cache updated with the new CSS', !!sheetB && sheetB.includes('deployB'));
+  check('install precache bypasses HTTP cache', /cache: 'reload'/.test(String(fs.readFileSync(path.join(WEB, 'sw.js')))));
+  serverDown = true;
+  await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => {});
+  const offline = await page.waitForFunction(() => document.querySelector('#text p'), { timeout: 15000 }).then(() => true, () => false);
+  check('offline fallback still works', offline);
+  serverDown = false; pagesCache = false; cssMarker = '';
   check('no JS errors sw', page.__errs.length === 0, page.__errs);
   swOverride = null;
   await ctx.close();
@@ -808,7 +850,7 @@ GROUPS.esword = async () => {
     await ev(page, () => { S.theme = 'light'; applyPrefs(); clearVerseSelection(); }); await wait(100);
     await tap(page, '#v3 span:nth-child(2)'); await wait(250);
     const lt = await ev(page, () => { const p = document.querySelector('#text p.sel'), ip = p.querySelector('.verseInlinePlay'); return { bg: getComputedStyle(document.body).backgroundColor, text: getComputedStyle(p.querySelector('span:nth-child(2)')).color, outline: getComputedStyle(p).outlineStyle, selBg: getComputedStyle(p).backgroundColor, glyph: getComputedStyle(ip.querySelector('.g')).display, svg: getComputedStyle(ip.querySelector('svg')).display, ipc: getComputedStyle(ip).color }; });
-    check(vp + ' light: unchanged (white, fg text, green selection + outline, filled ▶)', lt.bg === 'rgb(255, 255, 255)' && lt.text === 'rgb(28, 28, 30)' && lt.outline === 'solid' && !/25, 51, 77/.test(lt.selBg) && lt.glyph !== 'none' && lt.svg === 'none' && lt.ipc === 'rgb(0, 135, 90)', lt);
+    check(vp + ' light: white page, fg text, light-blue selection, no ring, #555 outlined ▶', lt.bg === 'rgb(255, 255, 255)' && lt.text === 'rgb(28, 28, 30)' && lt.outline === 'none' && lt.selBg === 'rgb(214, 228, 242)' && lt.glyph === 'none' && lt.svg === 'block' && lt.ipc === 'rgb(85, 85, 85)', lt);
     /* system theme follows dark */
     await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }]);
     await ev(page, () => { S.theme = 'system'; applyPrefs(); }); await wait(100);
@@ -817,6 +859,64 @@ GROUPS.esword = async () => {
     await noErrors(page, vp + ' esword');
     await page.close();
   }
+};
+
+GROUPS.picker = async () => {
+  for (const vp of ['ipadL', 'ipadP', 'ph390', 'phL']) {
+    const page = await newPage(vp);
+    await open(page, {});
+    await tap(page, '#current'); await wait(150);
+    await pickerV2(page, vp);
+    await layout(page, vp + '-picker-v2');
+    await tapPickerX(page);
+    check(vp + ' picker ✕ closes', await ev(page, () => $('#sheet').hidden));
+    await tap(page, '#current'); await wait(150);
+    await tap(page, '#current'); await wait(150);
+    check(vp + ' Книги again toggles it closed', await ev(page, () => $('#sheet').hidden));
+    await tap(page, '#current'); await wait(150);
+    await tap(page, '#slots button:nth-child(2)'); await wait(150);
+    check(vp + ' tab tap closes picker', await ev(page, () => $('#sheet').hidden && S.active === 1));
+    /* other sheets keep their header */
+    await ev(page, () => openSheet('Тест')); await wait(50);
+    check(vp + ' other sheets keep title row', await ev(page, () => getComputedStyle($('#sheetHead')).display !== 'none' && $('#sheetTitle').textContent === 'Тест'));
+    await ev(page, () => closeSheet());
+    await noErrors(page, vp + ' picker');
+    await page.close();
+  }
+};
+
+/* selection is never green: light/dark/auto, .sel and .hl.sel (playing) */
+GROUPS.selcolor = async () => {
+  const isGreen = c => { const m = String(c).match(/[\d.]+/g); if (!m) return false; let [r, g, b] = m.map(Number); if (/color\(srgb/.test(c)) { r *= 255; g *= 255; b *= 255; } return g > r + 25 && g > b + 15; };
+  for (const vp of ['ipadL', 'ph390']) {
+    const page = await newPage(vp);
+    for (const [theme, scheme, bgWant] of [['light', 'light', 'rgb(214, 228, 242)'], ['dark', 'dark', 'rgb(25, 51, 77)'], ['system', 'light', 'rgb(214, 228, 242)'], ['system', 'dark', 'rgb(25, 51, 77)']]) {
+      await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: scheme }]);
+      await open(page, { state: { theme, slots: [{ b: 18, c: 22, y: 0, vi: 0, vo: 0 }, DEF_STATE.slots[1], DEF_STATE.slots[2]] } });
+      const tag = vp + ' ' + theme + (theme === 'system' ? '/' + scheme : '');
+      await tap(page, '#v3 span:nth-child(2)'); await wait(250);
+      const a = await ev(page, () => { const p = $('#v3'), cs = getComputedStyle(p), ip = p.querySelector('.verseInlinePlay'), path = ip && ip.querySelector('path'); return { bg: cs.backgroundColor, ol: cs.outlineStyle, olc: cs.outlineColor, sh: cs.boxShadow, svg: ip && getComputedStyle(ip.querySelector('svg')).display, glyph: ip && getComputedStyle(ip.querySelector('.g')).display, stroke: path && getComputedStyle(path).stroke, ipc: ip && getComputedStyle(ip).color }; });
+      check(tag + ' .sel background', a.bg === bgWant, a);
+      check(tag + ' .sel no green ring/background', a.ol === 'none' && !isGreen(a.bg) && !isGreen(a.sh), a);
+      check(tag + ' inline ▶ outlined triangle', a.svg === 'block' && a.glyph === 'none' && !isGreen(a.stroke), a);
+      if (theme === 'light') {
+        check(tag + ' triangle stroke #555', a.stroke === 'rgb(85, 85, 85)', a.stroke);
+        if (vp === 'ipadL') await page.screenshot({ path: '/workspace/shots/sel-light.png' });
+      }
+      /* while playing: the playing verse selected (.hl.sel) */
+      await play(page); await wait(300);
+      const b = await ev(page, () => { const p = document.querySelector('#text p.hl'); if (!p) return null; p.classList.add('sel'); const cs = getComputedStyle(p); const r = { bg: cs.backgroundColor, ol: cs.outlineStyle, sh: cs.boxShadow }; p.classList.remove('sel'); return r; });
+      check(tag + ' .hl.sel while playing not green', b && b.ol === 'none' && !isGreen(b.bg) && !isGreen(b.sh), b);
+      await ev(page, () => stopAudio()); await wait(100);
+    }
+    await page.emulateMediaFeatures([]);
+    await noErrors(page, vp + ' selcolor');
+    await page.close();
+  }
+  /* no stylesheet rule paints a green selection */
+  const css = String(fs.readFileSync(path.join(WEB, 'style.css')));
+  const selRules = css.match(/[^}]*\.sel[^{]*\{[^}]*\}/g) || [];
+  check('no .sel rule uses --num/--nt/green for background or outline', selRules.every(r => !/(background|outline|box-shadow)[^;]*(--num|--nt|#00875A|#34D399)/i.test(r)), selRules);
 };
 
 GROUPS.layout = async () => {
