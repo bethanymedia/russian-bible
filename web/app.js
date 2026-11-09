@@ -1,7 +1,7 @@
 'use strict';
 const $ = s => document.querySelector(s);
 const KEY = 'rb_state_v1';
-const DEF = { active: 0, slots: [{b:0,c:0,y:0},{b:18,c:22,y:0},{b:42,c:0,y:0}], fs: 20, theme: 'system', reader: 'kozlov', cont: true, rate: 1, follow: true };
+const DEF = { active: 0, slots: [{b:0,c:0,y:0},{b:18,c:22,y:0},{b:42,c:0,y:0}], fs: 20, theme: 'dark', reader: 'kozlov', cont: true, rate: 1, follow: true };
 let S = load(), BIBLE = null, TIMES = {}, timesOK = false;
 
 function load(){ try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.slots && s.slots.length === 3) return Object.assign({}, DEF, s); } catch(e){} return JSON.parse(JSON.stringify(DEF)); }
