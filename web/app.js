@@ -263,7 +263,7 @@ function showPlayerChrome(){
   document.body.classList.add('playing');
   updateAudioRefChip();
   if (BIBLE) renderBar();
-  else scheduleLayoutAudioBtn();
+  layoutAudioBtn(); /* fit the controls now, not 30 ms later */
 }
 function hidePlayerChrome(){
   $('#player').hidden = true;
@@ -374,9 +374,8 @@ function renderBar(){
   const sl = $('#slots'); sl.innerHTML = '';
   S.slots.forEach((s, i) => sl.appendChild(btn(`${book(s.b).a} ${s.c+1}`, () => switchSlot(i), i === S.active ? 'on' : '')));
   const {b, c} = slot();
-  /* While playing, use short abbr so the seek slider keeps room (no «Псалтирь…») */
-  const playing = document.body.classList.contains('playing');
-  $('#current').textContent = (playing && !isPhone()) ? `${book(b).a} ${c+1}` : `${book(b).n} ${c+1}`;
+  /* Same label playing or not, so ‹ (and the ▶ centred against it) never moves */
+  $('#current').textContent = `${book(b).n} ${c+1}`;
   const atStart = b === 0 && c === 0;
   const atEnd = b === 65 && c === book(65).c.length - 1;
   $('#prevCh').disabled = atStart;
@@ -739,15 +738,6 @@ function playFromVerse(verseIdx){
 }
 
 
-/* Center ▶ halfway between ☰ and ‹ (prevCh); pad player so it doesn't overlap */
-
-function syncSeekFill(){
-  const el = $('#pSeek');
-  if (!el) return;
-  const max = +el.max || 1000;
-  const pct = max ? (100 * (+el.value || 0) / max) : 0;
-  el.style.setProperty('--seek-pct', pct + '%');
-}
 function layoutPhoneChrome(){
   const slots = $('#slots');
   const titleRow = $('#titleRow');
@@ -766,12 +756,13 @@ function layoutPhoneChrome(){
   }
   syncModeButtons(); /* also refreshes sticky hdr var */
 }
+/* Tablet: ▶/❚❚ sits at one fixed spot halfway between ☰ and ‹, playing or not.
+   Playing controls hang off either side of it: [chip ↺15] ▶ [time ■]. Anything that
+   would run into ☰ or ‹ is dropped (time first, then ↺15). Phone: in-flow, no player. */
 function layoutAudioBtn(){
   const bar = $('#bar'), btn = $('#audioBtn'), menu = $('#menuBtn'), prev = $('#prevCh');
   if (!bar || !btn || !menu || !prev) return;
-  /* Playing or phone two-row bar: in-flow after ☰ */
-  if (!$('#player').hidden || isPhone()) {
-    bar.style.setProperty('--audio-pad', '0px');
+  if (isPhone()) {
     btn.style.minWidth = '';
     btn.style.width = '';
     return;
@@ -780,7 +771,7 @@ function layoutAudioBtn(){
   const mr = menu.getBoundingClientRect();
   const pr = prev.getBoundingClientRect();
   const gap = pr.left - mr.right;
-  const ideal = 44;
+  const ideal = 52;
   if (gap < ideal + 10) {
     const size = Math.max(28, Math.floor(gap - 8));
     btn.style.width = size + 'px';
@@ -789,14 +780,22 @@ function layoutAudioBtn(){
     btn.style.width = '';
     btn.style.minWidth = '';
   }
-  const btnW = btn.offsetWidth || 44;
+  const btnW = btn.offsetWidth || 52;
   const half = btnW / 2 + 2;
   const mid = (mr.left + mr.width / 2 + pr.left + pr.width / 2) / 2;
   const lo = mr.right + half;
   const hi = pr.left - half;
   const clamped = hi >= lo ? Math.min(hi, Math.max(lo, mid)) : (mr.right + pr.left) / 2;
   bar.style.setProperty('--audio-x', (clamped - br.left) + 'px');
-  bar.style.setProperty('--audio-pad', '0px');
+  fitPlayerControls(mr, pr);
+}
+function fitPlayerControls(mr, pr){
+  const pl = $('#player');
+  if (pl.hidden) return;
+  pl.classList.remove('noTime', 'noBack');
+  const L = $('#pL').getBoundingClientRect(), Rr = $('#pR').getBoundingClientRect();
+  if (Rr.right > pr.left - 4) pl.classList.add('noTime');
+  if (L.width && L.left < mr.right + 4) pl.classList.add('noBack');
 }
 let layoutAudioT = 0;
 function scheduleLayoutAudioBtn(){
@@ -834,7 +833,7 @@ function updateAudioRefChip(){
   if (audioBook >= 0) el.textContent = book(audioBook).a + ' ' + (audioChap + 1);
   else el.textContent = '';
   const show = !$('#player').hidden && audioBook >= 0 && !viewMatchesAudio();
-  el.hidden = !show;
+  if (el.hidden !== !show) { el.hidden = !show; scheduleLayoutAudioBtn(); }
 }
 function jumpToAudioChapter(){
   if (audioBook < 0) return;
@@ -1029,28 +1028,9 @@ audio.onerror = () => {
   stopAudio();
 };
 const fmt = t => isFinite(t) ? Math.floor(t/60) + ':' + String(Math.floor(t%60)).padStart(2,'0') : '0:00';
-let seeking = false;
-$('#pSeek').oninput = e => {
-  seeking = true;
-  syncSeekFill();
-  if (!audio.duration) return;
-  const sec = e.target.value / 1000 * audio.duration;
-  $('#pTime').textContent = fmt(sec);
-  highlightFromSeek(sec);
-};
-$('#pSeek').onchange = e => {
-  if (audio.duration) {
-    const sec = e.target.value / 1000 * audio.duration;
-    audio.currentTime = sec;
-    highlight({ force: true, time: sec, scroll: true, instant: true });
-  }
-  seeking = false;
-};
 audio.ontimeupdate = () => {
-  if (!seeking && audio.duration) $('#pSeek').value = Math.round(audio.currentTime / audio.duration * 1000);
   $('#pTime').textContent = fmt(audio.currentTime);
-  syncSeekFill();
-  if (!seeking) highlight();
+  highlight();
 };
 /* Auto-next: audio moves to the next chapter; the view follows only when you were
    looking at the chapter that was playing. */
@@ -1069,7 +1049,7 @@ audio.onended = () => {
     render(false);
   }
 };
-let hlIdx = -1, hlSeekT = 0, lastFollowVerse = 0;
+let hlIdx = -1, lastFollowVerse = 0;
 function clearHL(){ const p = document.querySelector('#text p.hl'); if (p) p.classList.remove('hl'); hlIdx = -1; }
 function verseIndexAtTime(sec){
   if (S.reader !== 'kozlov') return -1;
@@ -1108,13 +1088,6 @@ function highlight(opts){
   const r = $('#reader'), pad = stickyHdrOffset();
   const top = Math.max(0, p.offsetTop - pad - r.clientHeight / 3);
   if (Math.abs(r.scrollTop - top) > r.clientHeight / 3) readerScrollTo(top, !opts.instant);
-}
-function highlightFromSeek(sec){
-  if (!S.follow || S.reader !== 'kozlov') return;
-  clearTimeout(hlSeekT);
-  hlSeekT = setTimeout(() => {
-    highlight({ force: true, time: sec, scroll: true, instant: true });
-  }, 80);
 }
 
 /* Voice commands (webkitSpeechRecognition) */

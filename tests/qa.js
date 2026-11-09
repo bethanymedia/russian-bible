@@ -324,11 +324,6 @@ GROUPS.audio = async () => {
   await ev(page, () => __AM.toEnd(0.05)); await wait(400);
   s = await st(page);
   check('auto-next view follows when viewing audio chapter', s.playing && s.audioChap === 23 && s.c === 23 && s.title.includes('24'), s);
-  /* seek drag updates highlight live */
-  await ev(page, () => { const e = $('#pSeek'); const st = TIMES['Ps.24']; e.value = Math.round((st[5] / 1000 + 0.5) / audio.duration * 1000); e.dispatchEvent(new Event('input')); });
-  await wait(200);
-  s = await st(page); check('seek drag moves highlight', s.hlEl === 'v6', s);
-  await ev(page, () => { const e = $('#pSeek'); e.dispatchEvent(new Event('change')); }); await wait(150);
   const tb = await ev(page, () => { audio.currentTime = TIMES['Ps.24'][7] / 1000 + 2; return audio.currentTime; }); await wait(200);
   await tap(page, '#pBack'); await wait(200);
   s = await st(page);
@@ -672,6 +667,53 @@ GROUPS.sw = async () => {
   check('no JS errors sw', page.__errs.length === 0, page.__errs);
   swOverride = null;
   await ctx.close();
+};
+
+GROUPS.tablet = async () => {
+  for (const vp of ['ipadL', 'ipadP']) {
+    const page = await newPage(vp);
+    await open(page, { state: { active: 1 } });
+    const pos = () => ev(page, () => { const r = $('#audioBtn').getBoundingClientRect(); return [Math.round(r.left * 2) / 2, Math.round(r.top * 2) / 2, Math.round(r.width)]; });
+    const tabs = await ev(page, () => [...document.querySelectorAll('#slots button')].map(b => { const cs = getComputedStyle(b); return [cs.fontSize, cs.fontWeight, cs.backgroundColor, b.classList.contains('on')]; }));
+    check(vp + ' tabs 20px bold', tabs.every(t => t[0] === '20px' && +t[1] >= 700), tabs);
+    const act = tabs.find(t => t[3]), ina = tabs.filter(t => !t[3]);
+    check(vp + ' active tab gray, inactive black', ina.every(t => t[2] === 'rgb(0, 0, 0)') && act[2] !== 'rgb(0, 0, 0)' && /rgb/.test(act[2]), tabs);
+    check(vp + ' ▶ icon ~1.4x (31px)', await ev(page, () => Math.round($('#audioBtn svg').getBoundingClientRect().width) === 31));
+    check(vp + ' no seek slider', await ev(page, () => !document.querySelector('#pSeek, #bar input[type=range]')));
+    const p0 = await pos();
+    const mid = await ev(page, () => { const m = $('#menuBtn').getBoundingClientRect(), p = $('#prevCh').getBoundingClientRect(), a = $('#audioBtn').getBoundingClientRect(); return Math.abs((a.left + a.width / 2) - (m.left + m.width / 2 + p.left + p.width / 2) / 2); });
+    check(vp + ' ▶ centred between ☰ and ‹', mid < 1, mid);
+    await play(page); await wait(100);
+    const p1 = await pos();
+    check(vp + ' ❚❚ in the same spot as ▶', JSON.stringify(p0) === JSON.stringify(p1), [p0, p1]);
+    check(vp + ' label shown while playing', await ev(page, () => { const e = $('#current'); return getComputedStyle(e).display !== 'none' && e.getBoundingClientRect().width > 40 && /Псалтирь 22/.test(e.textContent); }));
+    const kept = () => ev(page, () => ['#pRef', '#pBack', '#pTime', '#pStop'].filter(s => { const e = $(s); return !e.hidden && getComputedStyle(e).display !== 'none' && e.getBoundingClientRect().width > 0; }));
+    let k = await kept();
+    check(vp + ' ↺15 and ■ kept', k.includes('#pBack') && k.includes('#pStop'), k);
+    await layout(page, vp + '-tabv9-playing');
+    if (vp === 'ipadL') await page.screenshot({ path: '/workspace/shots/tab-v9-playing.png' });
+    else await page.screenshot({ path: '/workspace/shots/tab-v9-playing-portrait.png' });
+    await clickSel(page, '#nextCh'); await wait(150);
+    const p2 = await pos();
+    k = await kept();
+    check(vp + ' chip appears, ▶ unmoved', k.includes('#pRef') && JSON.stringify(p1) === JSON.stringify(p2), { k, p1, p2 });
+    await layout(page, vp + '-tabv9-playing-chip');
+    for (let i = 0; i < 20; i++) { await wait(420); await clickSel(page, '#nextCh'); } /* long and short labels */
+    await layout(page, vp + '-tabv9-playing-later');
+    await tap(page, '#audioBtn'); await waitPlaying(page, false); await wait(60);
+    await ev(page, () => go(18, 21)); await wait(100);
+    check(vp + ' paused ▶ same spot', JSON.stringify(await pos()) === JSON.stringify(p0), [await pos(), p0]);
+    if (vp === 'ipadL') { await ev(page, () => go(0, 0)); await wait(100); await page.screenshot({ path: '/workspace/shots/tab-v9-read.png' }); }
+    await noErrors(page, vp + ' tablet');
+    await page.close();
+  }
+  /* phones untouched */
+  const ph = await newPage('ph390');
+  await open(ph, {});
+  const pt = await ev(ph, () => [...document.querySelectorAll('#slots button')].map(b => getComputedStyle(b).fontSize + '/' + getComputedStyle(b).fontWeight));
+  check('phone tabs unchanged (14px regular)', pt.every(x => x === '14px/400'), pt);
+  check('phone ▶ in-flow', await ev(ph, () => getComputedStyle($('#audioBtn')).position === 'static'));
+  await ph.close();
 };
 
 GROUPS.layout = async () => {

@@ -23,33 +23,27 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #slots button.on{color:var(--fg);background:var(--bg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
 #left{display:flex;align-items:center;gap:4px;justify-self:stretch;min-width:0;overflow:visible}
 #menuBtn{font-size:26px;padding:0;width:44px;height:44px;line-height:1;flex:0 0 auto;position:relative;z-index:4;color:var(--bar-icon);display:inline-flex;align-items:center;justify-content:center}
-#leftMain{display:flex;align-items:center;justify-content:flex-start;gap:6px;flex:1;min-width:0;padding-left:var(--audio-pad,0px)}
-/* Idle: ▶ centered between ☰ and ‹. Playing: in-flow after ☰. */
+#leftMain{display:flex;align-items:center;justify-content:flex-start;gap:6px;flex:1;min-width:0}
+/* Tablet: ▶/❚❚ fixed halfway between ☰ and ‹ in every state (phone overrides to in-flow) */
 #audioBtn{position:absolute;left:var(--audio-x,72px);top:50%;transform:translate(-50%,-50%);z-index:3;width:44px;height:44px;padding:0;margin:0;display:inline-flex;align-items:center;justify-content:center;color:var(--bar-icon);flex:0 0 auto}
 #audioBtn svg{width:22px;height:22px;display:block}
+body:not(.phone) #audioBtn{width:52px;height:52px}
+body:not(.phone) #audioBtn svg{width:31px;height:31px}
 #audioBtn.jump{color:color-mix(in srgb,var(--num) 72%,var(--muted))}
 #audioBtn .icPause[hidden],#audioBtn .icPlay[hidden]{display:none}
-body.playing #audioBtn{position:static;transform:none;left:auto;top:auto}
-body.playing #leftMain{padding-left:0}
-#player{display:flex;align-items:center;gap:6px;flex:1;min-width:0;max-width:100%;overflow:visible}
+/* Playing controls hang off the fixed ▶: [chip ↺15] ▶ [time ■] (positioned against #bar) */
+#player{display:contents}
 #player[hidden]{display:none}
-#player input{flex:1 1 160px;min-width:160px;accent-color:var(--seek-fill)}
-#pSeek{-webkit-appearance:none;appearance:none;height:44px;background:transparent;cursor:pointer;flex:1 1 160px;min-width:160px}
-#pSeek:focus{outline:none}
-#pSeek::-webkit-slider-runnable-track{height:4px;border-radius:999px;background:linear-gradient(to right,var(--seek-fill) var(--seek-pct,0%),var(--seek-track) var(--seek-pct,0%))}
-#pSeek::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;margin-top:-5px;border-radius:50%;background:var(--seek-thumb);border:1px solid color-mix(in srgb,var(--muted) 40%,transparent);box-shadow:none}
-#pSeek::-moz-range-track{height:4px;border-radius:999px;background:var(--seek-track)}
-#pSeek::-moz-range-progress{height:4px;border-radius:999px;background:var(--seek-fill)}
-#pSeek::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--seek-thumb);border:1px solid color-mix(in srgb,var(--muted) 40%,transparent);box-shadow:none}
-#pTime{font-size:13px;color:var(--muted);flex:0 0 auto;min-width:4.6em;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+#pL,#pR{position:absolute;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:4px;white-space:nowrap}
+#pL{right:calc(100% - var(--audio-x,72px) + 30px)}
+#pR{left:calc(var(--audio-x,72px) + 30px)}
+#player.noTime #pTime,#player.noBack #pBack{display:none}
+#pTime{font-size:13px;color:var(--muted);flex:0 0 auto;min-width:3.4em;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 #pBack{font-size:15px;color:var(--bar-icon);padding:0 6px;height:44px;min-width:44px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center}
 #pStop{color:var(--bar-icon);padding:0;width:44px;height:44px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center}
 #pStop svg{width:18px;height:18px;display:block}
 #pRef{font-size:11px;font-weight:600;color:var(--accent);padding:4px 5px;flex:0 0 auto;border:1px solid color-mix(in srgb,var(--accent) 45%,var(--line));border-radius:8px;background:color-mix(in srgb,var(--accent) 12%,transparent);white-space:nowrap;max-width:4.2em;overflow:hidden;text-overflow:ellipsis;height:28px}
 #pRef[hidden]{display:none}
-/* Playing: hide chapter label (title + chip cover it); keep arrows */
-body.playing #chNav #current{display:none}
-body.playing #bar{grid-template-columns:minmax(0,1fr) auto auto;gap:4px}
 #sheet{position:fixed;inset:0;background:var(--bg);z-index:10;display:flex;flex-direction:column}
 #sheet[hidden]{display:none}
 #sheetHead{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;border-bottom:1px solid var(--line);font-weight:600}
@@ -144,13 +138,7 @@ body.modeOn #text p{scroll-margin-top:var(--sticky-hdr,56px)}
  .pk .books button{font-size:clamp(14px,min(1.7vh,2.5vw),30px)}
 }
 
-/* Playing layout: ☰ ❚❚ ↺15 seek time ■ | ‹ › | tabs  (portrait drops ↺15 + time) */
-body.playing #slots button{font-size:15px;padding:0 8px;height:44px;min-width:44px}
-@media (max-width:820px), (orientation:portrait){
-  body.playing #pTime,
-  body.playing #pBack{display:none}
-  body.playing #pSeek{min-width:120px;flex:1 1 120px}
-}
+/* Playing layout (tablet): ☰ [chip ↺15] ❚❚ [time ■] | ‹ label › | tabs */
 
 
 /* Commentary / Symfonia — body text tracks S.fs (var(--fs)) with no cap */
@@ -182,18 +170,14 @@ body.playing #slots button{font-size:15px;padding:0 8px;height:44px;min-width:44
 #prevCh:active:not(:disabled) .chev,#nextCh:active:not(:disabled) .chev{transform:scale(.92)}
 #prevCh:disabled,#nextCh:disabled{opacity:.28;cursor:default}
 #chNav #current{min-height:44px;font-size:24px;font-weight:600;padding:4px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:min(24vw,200px)}
-body.playing #chNav #current{max-width:5.5em;font-size:16px}
 @media (max-width:900px){
   #chNav #current{font-size:20px;max-width:min(22vw,150px)}
-  body.playing #chNav #current{max-width:5.2em;font-size:15px}
 }
 /* Prefer shrinking tab labels / chapter title over arrows when space is tight */
 @media (max-width:820px), (orientation:portrait){
   #slots button{font-size:16px;padding:5px 6px}
-  body.playing #slots button{font-size:15px;padding:0 6px;height:44px}
   #prevCh,#nextCh{width:56px;height:56px;min-width:56px;min-height:56px}
   #chNav #current{font-size:18px;max-width:min(28vw,130px)}
-  body.playing #chNav #current{max-width:4.8em;font-size:15px}
 }
 @media (max-width:700px){
   #slots button{font-size:14px;padding:4px 4px}
@@ -324,3 +308,9 @@ body.listening #toast{border-color:var(--num)}
   body.phone #sheetHead{padding-top:2px;padding-bottom:2px}
   #sheetClose{font-size:30px;min-height:44px}
 }
+
+/* ===== Tablet tabs: 20px bold; active = gray, inactive = black (phone keeps its own) ===== */
+body:not(.phone) #slots{background:var(--bg);border:1px solid var(--line);padding:2px;gap:2px}
+body:not(.phone) #slots button{font-size:20px;font-weight:700;height:46px;min-width:46px;padding:0 12px;color:var(--muted);background:var(--bg);box-shadow:none}
+body:not(.phone) #slots button.on{color:var(--fg);background:color-mix(in srgb,var(--fg) 22%,var(--bg))}
+@media (max-width:900px){body:not(.phone) #slots button{padding:0 9px}}
