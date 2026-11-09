@@ -17,7 +17,14 @@
 <body>
 <main id="reader" tabindex="-1">
   <div id="loading">Загрузка…</div>
-  <div id="titleRow"><h1 id="title"></h1><button id="trBtn" aria-label="Translation">EN</button></div>
+  <div id="titleRow">
+    <h1 id="title"></h1>
+    <div id="modeToggles" aria-label="Modes">
+      <button type="button" class="modeBtn" id="tolkBtn" data-mode="tolk" data-short="Толк" data-full="Толкование">Толк</button>
+      <button type="button" class="modeBtn" id="simfBtn" data-mode="simf" data-short="Симф" data-full="Симфония">Симф</button>
+      <button type="button" class="modeBtn" id="trBtn" data-mode="en" data-short="EN" data-full="English">EN</button>
+    </div>
+  </div>
   <div id="text"></div>
   <div id="endnav"></div>
 </main>
@@ -27,6 +34,7 @@
   <div id="left">
     <button id="menuBtn" aria-label="Меню">☰</button>
     <button id="audioBtn" aria-label="Слушать">▶</button>
+    <button type="button" id="micBtn" aria-label="Голос" hidden>🎤</button>
     <div id="player" hidden>
       <button id="pBack" aria-label="Назад 15 секунд">↺15</button>
       <input id="pSeek" type="range" min="0" max="1000" value="0" aria-label="Позиция">
@@ -34,7 +42,11 @@
       <button id="pStop" aria-label="Стоп">■</button>
     </div>
   </div>
-  <button id="current"></button>
+  <div id="chNav">
+    <button type="button" id="prevCh" aria-label="Предыдущая глава">‹</button>
+    <button type="button" id="current"></button>
+    <button type="button" id="nextCh" aria-label="Следующая глава">›</button>
+  </div>
   <div id="slots"></div>
 </nav>
 
@@ -59,9 +71,12 @@
   <div class="seg" id="sleepSeg"><button data-s="0" data-i="off">Выкл</button><button data-s="15" data-i="m15">15 м</button><button data-s="30" data-i="m30">30 м</button><button data-s="60" data-i="m60">60 м</button><button data-s="-1" data-i="chEnd">Глава</button></div>
   <label class="tog"><span data-i="cont">Продолжать со следующей главы</span><input type="checkbox" id="contChk"></label>
   <label class="tog"><span data-i="follow">Следить за стихом (Козлов)</span><input type="checkbox" id="followChk"></label>
+  <button class="link" id="voiceBtn" type="button" hidden>🎤 Голос · Voice</button>
   <button class="link" id="aboutBtn" data-i="about">О приложении</button>
 </div>
+<div id="toast" hidden></div>
 <audio id="audio" preload="none"></audio>
+<script src="voice.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

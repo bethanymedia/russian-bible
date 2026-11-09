@@ -1,5 +1,5 @@
-const V = 'rb-v8';
-const FILES = ['./', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'data/bible.json', 'data/kozlov_timings.json'];
+const V = 'rb-v10';
+const FILES = ['./', 'index.html', 'style.css', 'app.js', 'voice.js', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png', 'data/bible.json', 'data/kozlov_timings.json', 'data/web.json'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(V).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== V).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 // App files: network first (so updates show), fall back to cache offline. Data files: cache first, cached on first use.

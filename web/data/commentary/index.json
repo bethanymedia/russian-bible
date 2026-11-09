@@ -1,0 +1,297 @@
+{
+  "source": "Толковая Библия под ред. А. П. Лопухина и преемников (1904–1913)",
+  "license": "Public domain",
+  "edition": "OCR from Internet Archive item Explanatory_Bible_by_Lopukhin (DAR 2009 reprint of PD text)",
+  "books": {
+    "1Chr": {
+      "file": "1Chr.json",
+      "chapters": 28,
+      "entries": 45
+    },
+    "1Cor": {
+      "file": "1Cor.json",
+      "chapters": 16,
+      "entries": 100
+    },
+    "1Kgs": {
+      "file": "1Kgs.json",
+      "chapters": 22,
+      "entries": 78
+    },
+    "1Pet": {
+      "file": "1Pet.json",
+      "chapters": 5,
+      "entries": 22
+    },
+    "1Sam": {
+      "file": "1Sam.json",
+      "chapters": 29,
+      "entries": 39
+    },
+    "1Thess": {
+      "file": "1Thess.json",
+      "chapters": 6,
+      "entries": 19
+    },
+    "1Tim": {
+      "file": "1Tim.json",
+      "chapters": 6,
+      "entries": 18
+    },
+    "2Chr": {
+      "file": "2Chr.json",
+      "chapters": 33,
+      "entries": 62
+    },
+    "2Kgs": {
+      "file": "2Kgs.json",
+      "chapters": 26,
+      "entries": 65
+    },
+    "2Sam": {
+      "file": "2Sam.json",
+      "chapters": 22,
+      "entries": 30
+    },
+    "Acts": {
+      "file": "Acts.json",
+      "chapters": 28,
+      "entries": 114
+    },
+    "Amos": {
+      "file": "Amos.json",
+      "chapters": 9,
+      "entries": 26
+    },
+    "Col": {
+      "file": "Col.json",
+      "chapters": 4,
+      "entries": 11
+    },
+    "Dan": {
+      "file": "Dan.json",
+      "chapters": 14,
+      "entries": 44
+    },
+    "Deut": {
+      "file": "Deut.json",
+      "chapters": 29,
+      "entries": 37
+    },
+    "Eph": {
+      "file": "Eph.json",
+      "chapters": 6,
+      "entries": 21
+    },
+    "Esth": {
+      "file": "Esth.json",
+      "chapters": 9,
+      "entries": 15
+    },
+    "Exod": {
+      "file": "Exod.json",
+      "chapters": 38,
+      "entries": 80
+    },
+    "Ezek": {
+      "file": "Ezek.json",
+      "chapters": 47,
+      "entries": 241
+    },
+    "Ezra": {
+      "file": "Ezra.json",
+      "chapters": 16,
+      "entries": 101
+    },
+    "Gal": {
+      "file": "Gal.json",
+      "chapters": 6,
+      "entries": 22
+    },
+    "Gen": {
+      "file": "Gen.json",
+      "chapters": 50,
+      "entries": 172
+    },
+    "Hab": {
+      "file": "Hab.json",
+      "chapters": 3,
+      "entries": 13
+    },
+    "Hag": {
+      "file": "Hag.json",
+      "chapters": 2,
+      "entries": 8
+    },
+    "Heb": {
+      "file": "Heb.json",
+      "chapters": 13,
+      "entries": 35
+    },
+    "Hos": {
+      "file": "Hos.json",
+      "chapters": 13,
+      "entries": 28
+    },
+    "Isa": {
+      "file": "Isa.json",
+      "chapters": 66,
+      "entries": 196
+    },
+    "Jas": {
+      "file": "Jas.json",
+      "chapters": 5,
+      "entries": 21
+    },
+    "Jer": {
+      "file": "Jer.json",
+      "chapters": 50,
+      "entries": 89
+    },
+    "Job": {
+      "file": "Job.json",
+      "chapters": 42,
+      "entries": 64
+    },
+    "Joel": {
+      "file": "Joel.json",
+      "chapters": 3,
+      "entries": 12
+    },
+    "John": {
+      "file": "John.json",
+      "chapters": 21,
+      "entries": 134
+    },
+    "Jonah": {
+      "file": "Jonah.json",
+      "chapters": 4,
+      "entries": 10
+    },
+    "Josh": {
+      "file": "Josh.json",
+      "chapters": 24,
+      "entries": 92
+    },
+    "Jude": {
+      "file": "Jude.json",
+      "chapters": 1,
+      "entries": 4
+    },
+    "Judg": {
+      "file": "Judg.json",
+      "chapters": 19,
+      "entries": 26
+    },
+    "Lam": {
+      "file": "Lam.json",
+      "chapters": 4,
+      "entries": 6
+    },
+    "Lev": {
+      "file": "Lev.json",
+      "chapters": 28,
+      "entries": 54
+    },
+    "Luke": {
+      "file": "Luke.json",
+      "chapters": 24,
+      "entries": 101
+    },
+    "Mal": {
+      "file": "Mal.json",
+      "chapters": 4,
+      "entries": 8
+    },
+    "Mark": {
+      "file": "Mark.json",
+      "chapters": 16,
+      "entries": 48
+    },
+    "Matt": {
+      "file": "Matt.json",
+      "chapters": 28,
+      "entries": 283
+    },
+    "Mic": {
+      "file": "Mic.json",
+      "chapters": 7,
+      "entries": 20
+    },
+    "Nah": {
+      "file": "Nah.json",
+      "chapters": 3,
+      "entries": 12
+    },
+    "Neh": {
+      "file": "Neh.json",
+      "chapters": 13,
+      "entries": 33
+    },
+    "Num": {
+      "file": "Num.json",
+      "chapters": 33,
+      "entries": 45
+    },
+    "Obad": {
+      "file": "Obad.json",
+      "chapters": 1,
+      "entries": 6
+    },
+    "Phil": {
+      "file": "Phil.json",
+      "chapters": 4,
+      "entries": 12
+    },
+    "Phlm": {
+      "file": "Phlm.json",
+      "chapters": 1,
+      "entries": 1
+    },
+    "Prov": {
+      "file": "Prov.json",
+      "chapters": 29,
+      "entries": 49
+    },
+    "Ps": {
+      "file": "Ps.json",
+      "chapters": 151,
+      "entries": 151
+    },
+    "Rev": {
+      "file": "Rev.json",
+      "chapters": 22,
+      "entries": 53
+    },
+    "Rom": {
+      "file": "Rom.json",
+      "chapters": 17,
+      "entries": 71
+    },
+    "Ruth": {
+      "file": "Ruth.json",
+      "chapters": 4,
+      "entries": 9
+    },
+    "Song": {
+      "file": "Song.json",
+      "chapters": 8,
+      "entries": 15
+    },
+    "Titus": {
+      "file": "Titus.json",
+      "chapters": 2,
+      "entries": 3
+    },
+    "Zech": {
+      "file": "Zech.json",
+      "chapters": 14,
+      "entries": 22
+    },
+    "Zeph": {
+      "file": "Zeph.json",
+      "chapters": 3,
+      "entries": 17
+    }
+  }
+}

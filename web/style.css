@@ -18,8 +18,6 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #slots{display:inline-flex;justify-self:end;background:var(--line);border-radius:9px;padding:2px;gap:0}
 #slots button{font-size:24px;padding:5px 16px;color:var(--muted);white-space:nowrap;border-radius:7px}
 #slots button.on{color:var(--fg);background:var(--bg);box-shadow:0 1px 2px rgba(0,0,0,.12)}
-#current::after{content:' ▾';font-size:.75em;color:var(--muted)}
-#current{font-size:26px;font-weight:600;padding:4px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:30vw}
 #left{display:flex;align-items:center;gap:22px;justify-self:stretch;min-width:0}
 #left>button{font-size:30px;padding:6px 12px;line-height:1;min-width:48px}
 #player{display:flex;align-items:center;gap:8px;flex:1;min-width:0;margin-left:6px}
@@ -59,9 +57,16 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #pop .seg button{padding:7px 4px;font-size:13px}
 #pop .tog{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px;margin:0 0 12px}
 #pop .tog input{width:20px;height:20px;accent-color:var(--num)}
-#titleRow{position:relative}
-#trBtn{position:absolute;right:0;top:3px;font:500 13px -apple-system,BlinkMacSystemFont,sans-serif;color:var(--muted);opacity:.55;padding:4px 8px;border-radius:6px}
-#trBtn.on{opacity:1;color:var(--num)}
+#titleRow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;margin:0 0 10px}
+#title{margin:0;text-align:center;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#modeToggles{display:flex;gap:6px;justify-self:end;flex-shrink:0;max-width:58vw;flex-wrap:wrap;justify-content:flex-end}
+.modeBtn{font:500 12px/1.2 -apple-system,BlinkMacSystemFont,sans-serif;padding:5px 9px;border-radius:999px;border:1px solid color-mix(in srgb,var(--muted) 35%,transparent);color:color-mix(in srgb,var(--muted) 70%,transparent);background:transparent;white-space:nowrap}
+.modeBtn.on{border-color:color-mix(in srgb,var(--num) 55%,transparent);color:color-mix(in srgb,var(--num) 85%,var(--fg))}
+@media (max-width:820px){
+  #titleRow{grid-template-columns:minmax(0,1fr) auto}
+  #title{font-size:13px;text-align:left}
+  .modeBtn{font-size:11px;padding:4px 7px}
+}
 #text .tr{grid-column:2;display:block;color:var(--muted);font-size:1em;line-height:1.4;margin-top:.1em}
 #text p{cursor:pointer;-webkit-tap-highlight-color:transparent}
 #sheetBack[hidden]{display:block;visibility:hidden}
@@ -103,9 +108,59 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #pSeek{min-width:40px}
 body.playing #left{gap:10px}
 body.playing #left>button{padding:6px 8px;min-width:40px}
-body.playing #current{max-width:24vw}
 @media (max-width:900px){
   body.playing #pTime{font-size:16px}
-  body.playing #current{max-width:20vw}
   body.playing #left{gap:6px}
 }
+
+
+/* Commentary / Symfonia feature panel content */
+#sheetBody.feat{padding:12px 16px calc(24px + env(safe-area-inset-bottom));overflow:auto}
+#featBody{font:15px/1.5 -apple-system,BlinkMacSystemFont,sans-serif;color:var(--fg)}
+#featBody .featRef{color:var(--num);font-weight:600;margin:0 0 10px;font-size:16px}
+#featBody .featMuted{color:var(--muted);font-size:14px}
+#featBody .featText{white-space:pre-wrap;line-height:1.55}
+#featBody .featSrc{margin-top:16px;color:var(--muted);font-size:12px}
+.simfHead{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}
+.simfHead input{flex:1;min-width:140px;font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg)}
+.simfSeg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.simfSeg button{padding:7px 10px;font-size:13px;color:var(--muted)}
+.simfSeg button.on{background:var(--fg);color:var(--bg)}
+.simfCount{color:var(--muted);font-size:13px;width:100%}
+.simfBook{margin:14px 0 6px;color:var(--num);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.03em}
+.simfHit{display:block;width:100%;text-align:left;padding:8px 10px;border-radius:10px;margin:0 0 4px;background:var(--bar);font-size:14px;line-height:1.35}
+.simfHit b{color:var(--num);font-weight:700}
+.simfHit .ref{color:var(--muted);font-size:12px;margin-right:6px}
+#text .w{cursor:pointer}
+#text .w:active{background:color-mix(in srgb,var(--num) 18%,transparent);border-radius:3px}
+#text p.flash{background:var(--hl);border-radius:4px;transition:background .8s}
+
+/* Chapter prev/next in bottom bar */
+#chNav{display:flex;align-items:center;justify-content:center;gap:0;min-width:0;max-width:100%}
+#prevCh,#nextCh{flex:0 0 auto;width:48px;height:48px;min-width:44px;min-height:44px;padding:0;font-size:34px;line-height:1;color:var(--fg);border-radius:10px}
+#prevCh:disabled,#nextCh:disabled{opacity:.28;cursor:default}
+#chNav #current{font-size:26px;font-weight:600;padding:4px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:min(28vw,220px)}
+body.playing #chNav #current{max-width:min(22vw,160px)}
+@media (max-width:900px){
+  #chNav #current{font-size:22px;max-width:min(26vw,160px)}
+  body.playing #chNav #current{max-width:min(18vw,120px)}
+}
+/* Prefer shrinking tab labels over arrows when space is tight */
+@media (max-width:820px), (orientation:portrait){
+  #slots button{font-size:18px;padding:5px 8px}
+  body.playing #slots button{font-size:16px;padding:4px 6px}
+  #prevCh,#nextCh{width:46px;height:46px;font-size:32px}
+}
+@media (max-width:700px){
+  #slots button{font-size:15px;padding:4px 5px}
+  #chNav #current{font-size:18px;max-width:min(30vw,140px)}
+}
+
+/* Voice mic + toast */
+#micBtn{font-size:22px;padding:6px 8px;line-height:1;min-width:40px;border-radius:10px;opacity:.85}
+#micBtn.on,body.listening #micBtn{outline:2px solid var(--num);opacity:1}
+#toast{position:fixed;left:50%;bottom:calc(78px + env(safe-area-inset-bottom));transform:translateX(-50%);max-width:min(90vw,420px);background:var(--bar);color:var(--fg);border:1px solid var(--line);border-radius:12px;padding:10px 16px;font-size:15px;box-shadow:0 6px 24px rgba(0,0,0,.18);z-index:20;text-align:center}
+#toast[hidden]{display:none}
+body.listening #toast{border-color:var(--num)}
+
+body.playing #micBtn{display:none}

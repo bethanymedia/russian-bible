@@ -1,18 +1,46 @@
 'use strict';
 const $ = s => document.querySelector(s);
 const KEY = 'rb_state_v1';
-const DEF = { active: 0, slots: [{b:0,c:0,y:0},{b:18,c:22,y:0},{b:42,c:0,y:0}], fs: 24, theme: 'dark', reader: 'kozlov', cont: true, rate: 1, follow: true, lang: 'ru', tr: 'web', trAll: false };
-let S = load(), BIBLE = null, TIMES = {}, timesOK = false;
+const DEF = { active: 0, slots: [{b:0,c:0,y:0},{b:18,c:21,y:0},{b:42,c:0,y:0}], fs: 24, theme: 'dark', reader: 'kozlov', cont: true, rate: 1, follow: true, lang: 'ru', tr: 'web', trAll: false, mode: '', num: 'syn' };
+/* KJV chapter → Synodal chapter for Psalms (1-based). Built from inline markers. */
+const PS_KJV_TO_SYN = {"1":1,"2":2,"3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9,"10":9,"11":10,"12":11,"13":12,"14":13,"15":14,"16":15,"17":16,"18":17,"19":18,"20":19,"21":20,"22":21,"23":22,"24":23,"25":24,"26":25,"27":26,"28":27,"29":28,"30":29,"31":30,"32":31,"33":32,"34":33,"35":34,"36":35,"37":36,"38":37,"39":38,"40":39,"41":40,"42":41,"43":42,"44":43,"45":44,"46":45,"47":46,"48":47,"49":48,"50":49,"51":50,"52":51,"53":52,"54":53,"55":54,"56":55,"57":56,"58":57,"59":58,"60":59,"61":60,"62":61,"63":62,"64":63,"65":64,"66":65,"67":66,"68":67,"69":68,"70":69,"71":70,"72":71,"73":72,"74":73,"75":74,"76":75,"77":76,"78":77,"79":78,"80":79,"81":80,"82":81,"83":82,"84":83,"85":84,"86":85,"87":86,"88":87,"89":88,"90":89,"91":90,"92":91,"93":92,"94":93,"95":94,"96":95,"97":96,"98":97,"99":98,"100":99,"101":100,"102":101,"103":102,"104":103,"105":104,"106":105,"107":106,"108":107,"109":108,"110":109,"111":110,"112":111,"113":112,"114":113,"115":113,"116":114,"117":116,"118":117,"119":118,"120":119,"121":120,"122":121,"123":122,"124":123,"125":124,"126":125,"127":126,"128":127,"129":128,"130":129,"131":130,"132":131,"133":132,"134":133,"135":134,"136":135,"137":136,"138":137,"139":138,"140":139,"141":140,"142":141,"143":142,"144":143,"145":144,"146":145,"147":146,"148":148,"149":149,"150":150};
 
-function load(){ try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.slots && s.slots.length === 3) return Object.assign({}, DEF, s); } catch(e){} return JSON.parse(JSON.stringify(DEF)); }
+function migrateState(s){
+  if (!s || !s.slots) return s;
+  if (s.num === 'syn') return s;
+  s.slots.forEach(slot => {
+    if (slot.b === 18) {
+      const kjv = (slot.c|0) + 1;
+      const syn = PS_KJV_TO_SYN[String(kjv)] || kjv;
+      slot.c = Math.max(0, syn - 1);
+    }
+  });
+  s.num = 'syn';
+  /* Old trAll-only → mode */
+  if (!('mode' in s)) s.mode = s.trAll ? 'en' : '';
+  return s;
+}
+function load(){
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY));
+    if (s && s.slots && s.slots.length === 3) {
+      const m = migrateState(Object.assign({}, DEF, s));
+      localStorage.setItem(KEY, JSON.stringify(m));
+      return m;
+    }
+  } catch(e){}
+  return JSON.parse(JSON.stringify(DEF));
+}
 function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+let S = load(), BIBLE = null, TIMES = {}, COMM = {}, SIMF = null;
+
 const T = {
  ru:{size:'Размер текста',theme:'Тема',light:'Светлая',dark:'Тёмная',auto:'Авто',reader:'Чтец (аудио)',speed:'Скорость',sleep:'Таймер сна',off:'Выкл',m15:'15 м',m30:'30 м',m60:'60 м',chEnd:'Глава',cont:'Продолжать со следующей главы',follow:'Следить за стихом (Козлов)',trl:'Перевод (нажмите на стих)',about:'О приложении',back:'‹ Назад',done:'Готово',books:'Книги',list:'Список книг',noaudio:'нет аудио',
-  credits:'<p><b>Текст:</b> Синодальный перевод (1876), общественное достояние. Источник: The Unbound Bible (Biola University).</p><p><b>Аудио:</b> Игорь Козлов, издательство «Благовестник» (распространяется свободно); файлы: Hugging Face, enochlev/russian-synodal-bible-kozlov.</p><p><b>Аудио:</b> А. Ф. Ефимов, «Благовестник»; файлы: The Audio Power (theaudiopower.org).</p><p>Аудио воспроизводится через интернет.</p><p><b>Перевод:</b> World English Bible, общественное достояние (ebible.org).</p>'},
+  credits:'<p><b>Текст:</b> Синодальный перевод (1876), общественное достояние. Источник: The Unbound Bible (Biola University). Нумерация глав и стихов — синодальная.</p><p><b>Аудио:</b> Игорь Козлов, издательство «Благовестник» (распространяется свободно); файлы: Hugging Face, enochlev/russian-synodal-bible-kozlov.</p><p><b>Аудио:</b> А. Ф. Ефимов, «Благовестник»; файлы: The Audio Power (theaudiopower.org).</p><p>Аудио воспроизводится через интернет.</p><p><b>Перевод:</b> World English Bible, общественное достояние (ebible.org). Английский сопоставлен с синодальной нумерацией.</p><p><b>Толкование:</b> Толковая Библия под ред. А. П. Лопухина и преемников (1904–1913), общественное достояние (OCR).</p>'},
  en:{size:'Text size',theme:'Theme',light:'Light',dark:'Dark',auto:'Auto',reader:'Reader (audio)',speed:'Speed',sleep:'Sleep timer',off:'Off',m15:'15 m',m30:'30 m',m60:'60 m',chEnd:'Chapter',cont:'Continue to next chapter',follow:'Follow the verse (Kozlov)',trl:'Translation (tap a verse)',about:'About',back:'‹ Back',done:'Done',books:'Books',list:'Book list',noaudio:'no audio',
-  credits:'<p><b>Text:</b> Russian Synodal Translation (1876), public domain. Source: The Unbound Bible (Biola University).</p><p><b>Audio:</b> Igor Kozlov, Blagovestnik publishers (freely distributed); files: Hugging Face, enochlev/russian-synodal-bible-kozlov.</p><p><b>Audio:</b> A. F. Efimov, Blagovestnik; files: The Audio Power (theaudiopower.org).</p><p>Audio streams over the internet.</p><p><b>Translation:</b> World English Bible, public domain (ebible.org).</p>'}};
+  credits:'<p><b>Text:</b> Russian Synodal Translation (1876), public domain. Source: The Unbound Bible (Biola University). Chapter and verse numbering follows the Synodal (Russian) tradition.</p><p><b>Audio:</b> Igor Kozlov, Blagovestnik publishers (freely distributed); files: Hugging Face, enochlev/russian-synodal-bible-kozlov.</p><p><b>Audio:</b> A. F. Efimov, Blagovestnik; files: The Audio Power (theaudiopower.org).</p><p>Audio streams over the internet.</p><p><b>Translation:</b> World English Bible, public domain (ebible.org), aligned to Synodal numbering.</p><p><b>Commentary:</b> Lopukhin Explanatory Bible (1904–1913), public domain (OCR).</p>'}};
 const t = k => (T[S.lang] || T.ru)[k];
-const TRS = [{id:'web', file:'data/web.json', label:'English (WEB)'}]; // add more translations here later
+const TRS = [{id:'web', file:'data/web.json', label:'English (WEB)'}];
 const TRD = {};
 function trData(){ const d = TRD[S.tr]; if (d) return Promise.resolve(d); const m = TRS.find(x => x.id === S.tr) || TRS[0]; return fetch(m.file).then(r => r.json()).then(j => (TRD[m.id] = j)); }
 const slot = () => S.slots[S.active];
@@ -31,22 +59,68 @@ function applyPrefs(){
   document.querySelectorAll('#sleepSeg button').forEach(b => b.classList.toggle('on', +b.dataset.s === sleepMode));
   const dark = S.theme === 'dark' || (S.theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
   document.querySelector('meta[name=theme-color]').content = dark ? '#000000' : '#ffffff';
+  syncModeButtons();
+}
+
+function syncModeButtons(){
+  document.querySelectorAll('.modeBtn').forEach(btn => {
+    const on = S.mode === btn.dataset.mode;
+    btn.classList.toggle('on', on);
+    btn.textContent = on ? btn.dataset.full : btn.dataset.short;
+  });
+  S.trAll = S.mode === 'en';
+}
+
+function setMode(m){
+  S.mode = (S.mode === m) ? '' : m;
+  S.trAll = S.mode === 'en';
+  save();
+  syncModeButtons();
+  if (S.mode === 'en') showAll(); else hideAll();
+  if (S.mode !== 'tolk' && S.mode !== 'simf') {
+    if (!$('#sheet').hidden && $('#sheetBody').classList.contains('feat')) closeSheet();
+  }
+  /* Re-bind verse clicks for word mode */
+  if (BIBLE) render(true);
 }
 
 function addTr(p, i, d){ if (p.querySelector('.tr')) return; const {b, c} = slot(); const s = (d.c[b] && d.c[b][c] && d.c[b][c][i]) || '—'; const e = document.createElement('span'); e.className = 'tr'; e.textContent = s; p.appendChild(e); }
-function toggleVerse(p, i){ if (window.getSelection && String(getSelection()).length) return; const ex = p.querySelector('.tr'); if (ex) { ex.remove(); return; } trData().then(d => addTr(p, i, d)).catch(() => {}); }
-function showAll(){ trData().then(d => { if (!S.trAll) return; document.querySelectorAll('#text p').forEach((p, i) => addTr(p, i, d)); }).catch(() => {}); }
+function toggleVerse(p, i){
+  if (window.getSelection && String(getSelection()).length) return;
+  if (S.mode === 'tolk') { openCommentary(i); return; }
+  if (S.mode === 'simf') return; /* word spans handle taps */
+  if (S.mode === 'en') return; /* chapter English already shown */
+  const ex = p.querySelector('.tr'); if (ex) { ex.remove(); return; }
+  trData().then(d => addTr(p, i, d)).catch(() => {});
+}
+function showAll(){ trData().then(d => { if (S.mode !== 'en') return; document.querySelectorAll('#text p').forEach((p, i) => addTr(p, i, d)); }).catch(() => {}); }
 function hideAll(){ document.querySelectorAll('#text .tr').forEach(e => e.remove()); }
 function chapTitle(b, c){ return (b === 18 ? 'Псалом ' : 'Глава ') + (c + 1); }
+
+function wrapWords(text){
+  /* Split into words for Симфония taps; keep punctuation attached lightly */
+  return text.replace(/([А-Яа-яЁёA-Za-zʹ᾽\-]+)/g, '<span class="w">$1</span>');
+}
 
 function render(keepScroll){
   const {b, c, y} = slot(), bk = book(b), verses = bk.c[c];
   $('#loading').hidden = true;
   $('#title').textContent = bk.n + ' · ' + chapTitle(b, c);
   const frag = document.createDocumentFragment();
-  verses.forEach((t, i) => { const p = document.createElement('p'); p.id = 'v' + (i+1); const n = document.createElement('span'); n.className = 'n'; n.textContent = i+1; const v = document.createElement('span'); v.textContent = t; p.append(n, v); p.onclick = () => toggleVerse(p, i); frag.appendChild(p); });
+  const simf = S.mode === 'simf';
+  verses.forEach((txt, i) => {
+    const p = document.createElement('p'); p.id = 'v' + (i+1);
+    const n = document.createElement('span'); n.className = 'n'; n.textContent = i+1;
+    const v = document.createElement('span');
+    if (simf) { v.innerHTML = wrapWords(txt); v.querySelectorAll('.w').forEach(w => { w.onclick = e => { e.stopPropagation(); openSimfonia(w.textContent); }; }); }
+    else v.textContent = txt;
+    p.append(n, v);
+    p.onclick = () => toggleVerse(p, i);
+    frag.appendChild(p);
+  });
   const tx = $('#text'); tx.innerHTML = ''; tx.appendChild(frag);
-  $('#trBtn').classList.toggle('on', S.trAll); if (S.trAll) showAll();
+  syncModeButtons();
+  if (S.mode === 'en') showAll(); else hideAll();
   const en = $('#endnav'); en.innerHTML = '';
   if (c < bk.c.length - 1) {
     en.appendChild(btn(`${chapTitle(b, c+1)} →`, () => go(b, c+1)));
@@ -68,6 +142,24 @@ function renderBar(){
   S.slots.forEach((s, i) => sl.appendChild(btn(`${book(s.b).a} ${s.c+1}`, () => switchSlot(i), i === S.active ? 'on' : '')));
   const {b, c} = slot();
   $('#current').textContent = `${book(b).n} ${c+1}`;
+  const atStart = b === 0 && c === 0;
+  const atEnd = b === 65 && c === book(65).c.length - 1;
+  $('#prevCh').disabled = atStart;
+  $('#nextCh').disabled = atEnd;
+}
+
+function prevChapter(){
+  const {b, c} = slot();
+  if (b === 0 && c === 0) return;
+  if (c > 0) go(b, c - 1);
+  else go(b - 1, book(b - 1).c.length - 1);
+}
+function nextChapter(){
+  const {b, c} = slot();
+  const last = book(b).c.length - 1;
+  if (b === 65 && c === last) return;
+  if (c < last) go(b, c + 1);
+  else go(b + 1, 0);
 }
 
 function go(b, c){ const s = slot(); s.b = b; s.c = c; s.y = 0; save(); closeSheet(); render(false); }
@@ -80,11 +172,10 @@ window.addEventListener('pagehide', saveScroll);
 document.addEventListener('visibilitychange', () => { if (document.hidden) saveScroll(); });
 
 /* Book and chapter picker */
-function openSheet(title, back){ $('#sheet').hidden = false; $('#sheetTitle').textContent = title; $('#sheetBack').hidden = !back; $('#sheetBack').onclick = back || null; $('#sheetBody').scrollTop = 0; closePop(); }
-function closeSheet(){ $('#sheet').hidden = true; }
+function openSheet(title, back){ $('#sheet').hidden = false; $('#sheetTitle').textContent = title; $('#sheetBack').hidden = !back; $('#sheetBack').onclick = back || null; $('#sheetBody').scrollTop = 0; $('#sheetBody').className = ''; closePop(); }
+function closeSheet(){ $('#sheet').hidden = true; $('#sheetBody').className = ''; }
 $('#sheetClose').onclick = closeSheet;
 
-/* Law, History, Poetry, Major and Minor Prophets; Gospels, Acts, Paul, General letters, Revelation */
 const GROUPS = [[0,5],[5,17],[17,22],[22,27],[27,39],[39,43],[43,44],[44,58],[58,65],[65,66]];
 function openBooks(){
   if (!$('#sheet').hidden) { closeSheet(); return; }
@@ -115,21 +206,22 @@ function openBooks(){
   pk.appendChild(ch);
   fill(slot().b);
 }
-/* swipe down on the header closes the picker */
 (() => { let y0 = null; const h = $('#sheetHead');
   h.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; }, {passive:true});
   h.addEventListener('touchend', e => { if (y0 !== null && e.changedTouches[0].clientY - y0 > 50) closeSheet(); y0 = null; });
 })();
 $('#current').onclick = openBooks;
+$('#prevCh').onclick = () => { closePop(); prevChapter(); };
+$('#nextCh').onclick = () => { closePop(); nextChapter(); };
 
 /* Quick settings panel */
 function closePop(){ $('#pop').hidden = true; }
 $('#menuBtn').onclick = e => { e.stopPropagation(); $('#pop').hidden = !$('#pop').hidden; };
 document.addEventListener('click', e => { if (!$('#pop').hidden && !$('#pop').contains(e.target) && e.target !== $('#menuBtn')) closePop(); });
 document.querySelectorAll('#langSeg button').forEach(b => b.onclick = () => { S.lang = b.dataset.l; save(); applyPrefs(); if (BIBLE) render(true); });
-$('#trBtn').onclick = () => { S.trAll = !S.trAll; save(); $('#trBtn').classList.toggle('on', S.trAll); S.trAll ? showAll() : hideAll(); };
+document.querySelectorAll('.modeBtn').forEach(b => b.onclick = () => setMode(b.dataset.mode));
 $('#trSel').innerHTML = TRS.map(x => `<option value="${x.id}">${x.label}</option>`).join('');
-$('#trSel').onchange = e => { S.tr = e.target.value; save(); hideAll(); if (S.trAll) showAll(); };
+$('#trSel').onchange = e => { S.tr = e.target.value; save(); hideAll(); if (S.mode === 'en') showAll(); };
 $('#fsRange').oninput = e => { S.fs = +e.target.value; save(); applyPrefs(); };
 document.querySelectorAll('#themeSeg button').forEach(b => b.onclick = () => { S.theme = b.dataset.t; save(); applyPrefs(); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyPrefs);
@@ -138,6 +230,133 @@ $('#aboutBtn').onclick = () => {
   openSheet(t('about'));
   $('#sheetBody').innerHTML = '<div class="credits">' + t('credits') + '</div>';
 };
+
+/* Commentary (Lopukhin) — Synodal numbering */
+function loadCommentary(osis){
+  if (COMM[osis]) return Promise.resolve(COMM[osis]);
+  return fetch('data/commentary/' + osis + '.json').then(r => {
+    if (!r.ok) throw new Error('no commentary');
+    return r.json();
+  }).then(j => (COMM[osis] = j));
+}
+function openCommentary(verseIdx){
+  const {b, c} = slot(), bk = book(b), v = verseIdx + 1;
+  openSheet('Толкование');
+  const body = $('#sheetBody'); body.className = 'feat';
+  body.innerHTML = '<div id="featBody"><p class="featMuted">Загрузка…</p></div>';
+  const ref = `${bk.n} ${c+1}:${v}`;
+  loadCommentary(bk.o).then(data => {
+    const ch = (data.chapters && (data.chapters[String(c+1)] || data.chapters[c+1])) || [];
+    let hit = ch.find(x => v >= x.s && v <= x.e);
+    if (!hit && ch.length) {
+      /* nearest passage */
+      hit = ch.reduce((best, x) => {
+        const d = v < x.s ? x.s - v : (v > x.e ? v - x.e : 0);
+        if (!best || d < best.d) return {d, x};
+        return best;
+      }, null).x;
+    }
+    const fb = $('#featBody');
+    if (!hit) {
+      fb.innerHTML = `<div class="featRef">${ref}</div><p class="featMuted">Нет толкования для этого места.</p><p class="featSrc">${data.source || ''}</p>`;
+      return;
+    }
+    const ee = (hit.e >= 200 ? hit.s : hit.e); const range = hit.s === ee ? `${c+1}:${hit.s}` : `${c+1}:${hit.s}–${ee}`;
+    fb.innerHTML = `<div class="featRef">${bk.n} ${range}</div><div class="featText"></div><p class="featSrc">${data.source || 'Лопухин'}</p>`;
+    fb.querySelector('.featText').textContent = hit.t;
+  }).catch(() => {
+    $('#featBody').innerHTML = `<div class="featRef">${ref}</div><p class="featMuted">Толкование для этой книги пока недоступно.</p>`;
+  });
+}
+
+/* Симфония — simple prefix/stem concordance */
+function normWord(w){
+  return w.toLowerCase().replace(/ё/g,'е').replace(/ъ/g,'').replace(/[^а-яa-z]/g,'');
+}
+function stemOf(w){
+  const s = normWord(w);
+  if (s.length <= 4) return s;
+  /* light Russian stem: drop common endings */
+  return s.replace(/(иями|ями|ами|иях|ях|ием|ем|ов|ев|ей|ой|ий|ый|ая|ое|ые|ие|ию|ью|ью|ам|ям|ах|ях|ом|ем|ую|юю|ии|ы|и|а|я|у|ю|е|о|ь)$/,'');
+}
+function buildSimf(){
+  if (SIMF) return SIMF;
+  const idx = new Map(); /* stem -> [{b,c,v,word,snippet}] */
+  BIBLE.books.forEach((bk, bi) => {
+    bk.c.forEach((ch, ci) => {
+      ch.forEach((txt, vi) => {
+        const words = txt.match(/[А-Яа-яЁёA-Za-zʹ᾽\-]+/g) || [];
+        words.forEach(w => {
+          const st = stemOf(w);
+          if (st.length < 3) return;
+          if (!idx.has(st)) idx.set(st, []);
+          const arr = idx.get(st);
+          if (arr.length < 80) arr.push({b:bi, c:ci, v:vi, w, t: txt.length > 110 ? txt.slice(0,110)+'…' : txt});
+        });
+      });
+    });
+  });
+  SIMF = idx;
+  return SIMF;
+}
+function openSimfonia(word, query){
+  const q = (query != null ? query : word) || '';
+  const st = stemOf(q);
+  openSheet('Симфония');
+  const body = $('#sheetBody'); body.className = 'feat';
+  const head = document.createElement('div'); head.className = 'simfHead';
+  const inp = document.createElement('input'); inp.type = 'search'; inp.placeholder = 'Поиск слова…'; inp.value = q;
+  const count = document.createElement('div'); count.className = 'simfCount';
+  head.append(inp, count);
+  const list = document.createElement('div'); list.id = 'featBody';
+  body.innerHTML = ''; body.append(head, list);
+  const run = () => {
+    const qq = inp.value.trim();
+    const stem = stemOf(qq);
+    list.innerHTML = '';
+    if (stem.length < 2) { count.textContent = 'Введите не менее 2 букв'; return; }
+    const idx = buildSimf();
+    let hits = idx.get(stem) || [];
+    /* also prefix match other stems */
+    if (hits.length < 20) {
+      for (const [k, arr] of idx) {
+        if (k !== stem && (k.startsWith(stem) || stem.startsWith(k))) {
+          hits = hits.concat(arr);
+          if (hits.length > 120) break;
+        }
+      }
+    }
+    /* dedupe by ref */
+    const seen = new Set();
+    hits = hits.filter(h => { const k = h.b+':'+h.c+':'+h.v; if (seen.has(k)) return false; seen.add(k); return true; });
+    count.textContent = hits.length ? `${hits.length} мест` : 'Ничего не найдено';
+    let lastBook = -1;
+    hits.slice(0, 100).forEach(h => {
+      if (h.b !== lastBook) {
+        lastBook = h.b;
+        const hb = document.createElement('div'); hb.className = 'simfBook'; hb.textContent = book(h.b).n;
+        list.appendChild(hb);
+      }
+      const btnEl = document.createElement('button'); btnEl.className = 'simfHit';
+      const re = new RegExp('('+qq.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','i');
+      const snip = h.t.replace(re, '<b>$1</b>');
+      btnEl.innerHTML = `<span class="ref">${book(h.b).a} ${h.c+1}:${h.v+1}</span> ${snip}`;
+      btnEl.onclick = () => {
+        go(h.b, h.c);
+        requestAnimationFrame(() => {
+          const p = $('#v'+(h.v+1));
+          if (p) { p.classList.add('flash'); p.scrollIntoView({block:'center'}); setTimeout(() => p.classList.remove('flash'), 1200); }
+        });
+      };
+      list.appendChild(btnEl);
+    });
+  };
+  let tmr = 0;
+  inp.oninput = () => { clearTimeout(tmr); tmr = setTimeout(run, 180); };
+  inp.onkeydown = e => { if (e.key === 'Enter') run(); };
+  run();
+  setTimeout(() => inp.focus(), 50);
+}
 
 /* Audio */
 const audio = $('#audio');
@@ -202,8 +421,143 @@ function highlight(){
   if (i >= 0) { const p = $('#v' + (i+1)); p.classList.add('hl'); const r = $('#reader'), top = p.offsetTop - r.clientHeight / 3; if (Math.abs(r.scrollTop - top) > r.clientHeight / 3) r.scrollTo({top, behavior:'smooth'}); }
 }
 
+/* Voice commands (webkitSpeechRecognition) */
+function showToast(msg, ms){
+  const el = $('#toast'); if (!el) return;
+  el.hidden = false; el.textContent = msg;
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => { el.hidden = true; }, ms || 2200);
+}
+function applyVoiceCmd(cmd){
+  if (!cmd || cmd.action === 'unknown') {
+    showToast('Не понял: ' + (cmd && cmd.raw ? cmd.raw : ''));
+    return;
+  }
+  if (cmd.action === 'next') { nextChapter(); showToast('→'); return; }
+  if (cmd.action === 'prev') { prevChapter(); showToast('←'); return; }
+  if (cmd.action === 'play') { if ($('#player').hidden || audio.paused) $('#audioBtn').click(); showToast('▶'); return; }
+  if (cmd.action === 'stop') { if (!audio.paused) audio.pause(); else stopAudio(); showToast('■'); return; }
+  if (cmd.action === 'books') { openBooks(); showToast('Книги'); return; }
+  if (cmd.action === 'go') {
+    const b = cmd.book, c = Math.max(0, (cmd.chapter|0) - 1);
+    if (b == null || !book(b) || c >= book(b).c.length) { showToast('Не понял: ' + cmd.raw); return; }
+    go(b, c);
+    if (cmd.verse) {
+      requestAnimationFrame(() => {
+        const p = $('#v' + cmd.verse);
+        if (p) { p.classList.add('flash'); p.scrollIntoView({block:'center'}); setTimeout(() => p.classList.remove('flash'), 1200); }
+      });
+    }
+    showToast(book(b).n + ' ' + (c+1) + (cmd.verse ? ':' + cmd.verse : ''));
+  }
+}
+let rec = null, listening = false;
+function voiceBooks(){
+  return BIBLE ? BIBLE.books.map(b => ({n:b.n,a:b.a,e:b.e,o:b.o})) : [];
+}
+function startListen(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { showToast('Голос не поддерживается'); return; }
+  if (listening && rec) { try { rec.stop(); } catch(e){} return; }
+  rec = new SR();
+  rec.lang = S.lang === 'en' ? 'en-US' : 'ru-RU';
+  rec.interimResults = false;
+  rec.maxAlternatives = 3;
+  listening = true;
+  document.body.classList.add('listening');
+  if ($('#micBtn')) $('#micBtn').classList.add('on');
+  showToast('🎤 …', 6000);
+  rec.onresult = e => {
+    let best = '';
+    for (let i = 0; i < e.results.length; i++) best += e.results[i][0].transcript;
+    best = best.trim();
+    showToast(best || '…', 1800);
+    if (!window.BibleVoice || !BIBLE) return;
+    const cmd = BibleVoice.parse(best, { books: voiceBooks() });
+    applyVoiceCmd(cmd);
+  };
+  rec.onerror = () => { listening = false; document.body.classList.remove('listening'); if ($('#micBtn')) $('#micBtn').classList.remove('on'); };
+  rec.onend = () => { listening = false; document.body.classList.remove('listening'); if ($('#micBtn')) $('#micBtn').classList.remove('on'); };
+  try { rec.start(); } catch(e) { listening = false; document.body.classList.remove('listening'); }
+}
+function initVoiceUi(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  const mic = $('#micBtn'), vbtn = $('#voiceBtn');
+  if (mic) { mic.hidden = false; mic.onclick = e => { e.stopPropagation(); closePop(); startListen(); }; }
+  if (vbtn) { vbtn.hidden = false; vbtn.onclick = e => { e.stopPropagation(); closePop(); startListen(); }; }
+}
+
+/* Deep links: #Ps.22 #John.3.16 #Иоанна.3  and ?play=1 */
+const OSIS_I = {};
+const NAME_I = {};
+function buildDeepIndex(){
+  if (!BIBLE) return;
+  BIBLE.books.forEach((bk, i) => {
+    OSIS_I[bk.o.toLowerCase()] = i;
+    [bk.n, bk.a, bk.e, bk.o].forEach(x => { if (x) NAME_I[String(x).toLowerCase().replace(/ё/g,'е')] = i; });
+    if (window.BibleVoice && BibleVoice.EXTRA[bk.o]) {
+      BibleVoice.EXTRA[bk.o].forEach(x => { NAME_I[String(x).toLowerCase().replace(/ё/g,'е')] = i; });
+    }
+  });
+}
+function parseHash(h){
+  h = String(h || '').replace(/^#/, '').trim();
+  if (!h) return null;
+  const m = h.match(/^([A-Za-zА-Яа-яЁё0-9\-]+)(?:[./:](\d+))?(?:[./:](\d+))?$/u);
+  if (!m) return null;
+  const key = m[1].toLowerCase().replace(/ё/g,'е');
+  let bi = OSIS_I[key];
+  if (bi == null) bi = NAME_I[key];
+  if (bi == null) {
+    if (window.BibleVoice && BIBLE) {
+      const phrase = m[1] + (m[2] ? ' ' + m[2] : '') + (m[3] ? ' стих ' + m[3] : '');
+      const cmd = BibleVoice.parse(phrase, { books: voiceBooks() });
+      if (cmd.action === 'go') return { b: cmd.book, c: cmd.chapter - 1, v: cmd.verse || null };
+    }
+    return null;
+  }
+  const c = m[2] ? Math.max(0, (+m[2]) - 1) : 0;
+  const v = m[3] ? +m[3] : null;
+  return { b: bi, c, v };
+}
+function applyDeepLink(opts){
+  if (!BIBLE) return false;
+  buildDeepIndex();
+  const loc = parseHash(location.hash);
+  if (!loc) return false;
+  if (loc.b < 0 || loc.b > 65) return false;
+  if (loc.c < 0 || loc.c >= book(loc.b).c.length) return false;
+  const s = slot(); s.b = loc.b; s.c = loc.c; s.y = 0; save();
+  render(false);
+  if (loc.v) {
+    requestAnimationFrame(() => {
+      const p = $('#v' + loc.v);
+      if (p) { p.classList.add('flash'); p.scrollIntoView({block:'center'}); setTimeout(() => p.classList.remove('flash'), 1400); }
+    });
+  }
+  if (opts && opts.play) {
+    setTimeout(() => {
+      $('#player').hidden = false; document.body.classList.add('playing');
+      loadAudio(); audio.play().catch(()=>{});
+    }, 300);
+  }
+  return true;
+}
+function readPlayFlag(){
+  try { return new URLSearchParams(location.search).get('play') === '1'; } catch(e){ return false; }
+}
+let deepReady = false;
+window.addEventListener('hashchange', () => { if (deepReady) applyDeepLink({play:false}); });
+
 /* Start */
 applyPrefs();
-fetch('data/bible.json').then(r => r.json()).then(d => { BIBLE = d; render(true); });
+initVoiceUi();
+fetch('data/bible.json').then(r => r.json()).then(d => {
+  BIBLE = d;
+  const played = applyDeepLink({ play: readPlayFlag() });
+  if (!played) render(true);
+  deepReady = true;
+});
 fetch('data/kozlov_timings.json').then(r => r.json()).then(d => { TIMES = d; }).catch(()=>{});
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
