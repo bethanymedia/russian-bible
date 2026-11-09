@@ -59,3 +59,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #pop .seg button{padding:7px 4px;font-size:13px}
 #pop .tog{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px;margin:0 0 12px}
 #pop .tog input{width:20px;height:20px;accent-color:var(--num)}
+#titleRow{position:relative}
+#trBtn{position:absolute;right:0;top:4px;font:600 15px -apple-system,BlinkMacSystemFont,sans-serif;color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:5px 10px}
+#trBtn.on{color:var(--bg);background:var(--num);border-color:var(--num)}
+#text .tr{grid-column:2;display:block;color:var(--muted);font-size:.82em;line-height:1.45;margin-top:.2em;font-family:-apple-system,BlinkMacSystemFont,sans-serif}
+#text p{cursor:pointer;-webkit-tap-highlight-color:transparent}

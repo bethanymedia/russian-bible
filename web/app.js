@@ -1,17 +1,20 @@
 'use strict';
 const $ = s => document.querySelector(s);
 const KEY = 'rb_state_v1';
-const DEF = { active: 0, slots: [{b:0,c:0,y:0},{b:18,c:22,y:0},{b:42,c:0,y:0}], fs: 20, theme: 'dark', reader: 'kozlov', cont: true, rate: 1, follow: true, lang: 'ru' };
+const DEF = { active: 0, slots: [{b:0,c:0,y:0},{b:18,c:22,y:0},{b:42,c:0,y:0}], fs: 20, theme: 'dark', reader: 'kozlov', cont: true, rate: 1, follow: true, lang: 'ru', tr: 'web', trAll: false };
 let S = load(), BIBLE = null, TIMES = {}, timesOK = false;
 
 function load(){ try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.slots && s.slots.length === 3) return Object.assign({}, DEF, s); } catch(e){} return JSON.parse(JSON.stringify(DEF)); }
 function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
 const T = {
- ru:{size:'Размер текста',theme:'Тема',light:'Светлая',dark:'Тёмная',auto:'Авто',reader:'Чтец (аудио)',speed:'Скорость',sleep:'Таймер сна',off:'Выкл',m15:'15 м',m30:'30 м',m60:'60 м',chEnd:'Глава',cont:'Продолжать со следующей главы',follow:'Следить за стихом (Козлов)',about:'О приложении',back:'‹ Назад',done:'Готово',books:'Книги',list:'Список книг',noaudio:'нет аудио',
-  credits:'<p><b>Текст:</b> Синодальный перевод (1876), общественное достояние. Источник: The Unbound Bible (Biola University).</p><p><b>Аудио:</b> Игорь Козлов, издательство «Благовестник» (распространяется свободно); файлы: Hugging Face, enochlev/russian-synodal-bible-kozlov.</p><p><b>Аудио:</b> А. Ф. Ефимов, «Благовестник»; файлы: The Audio Power (theaudiopower.org).</p><p>Аудио воспроизводится через интернет.</p>'},
- en:{size:'Text size',theme:'Theme',light:'Light',dark:'Dark',auto:'Auto',reader:'Reader (audio)',speed:'Speed',sleep:'Sleep timer',off:'Off',m15:'15 m',m30:'30 m',m60:'60 m',chEnd:'Chapter',cont:'Continue to next chapter',follow:'Follow the verse (Kozlov)',about:'About',back:'‹ Back',done:'Done',books:'Books',list:'Book list',noaudio:'no audio',
-  credits:'<p><b>Text:</b> Russian Synodal Translation (1876), public domain. Source: The Unbound Bible (Biola University).</p><p><b>Audio:</b> Igor Kozlov, Blagovestnik publishers (freely distributed); files: Hugging Face, enochlev/russian-synodal-bible-kozlov.</p><p><b>Audio:</b> A. F. Efimov, Blagovestnik; files: The Audio Power (theaudiopower.org).</p><p>Audio streams over the internet.</p>'}};
+ ru:{size:'Размер текста',theme:'Тема',light:'Светлая',dark:'Тёмная',auto:'Авто',reader:'Чтец (аудио)',speed:'Скорость',sleep:'Таймер сна',off:'Выкл',m15:'15 м',m30:'30 м',m60:'60 м',chEnd:'Глава',cont:'Продолжать со следующей главы',follow:'Следить за стихом (Козлов)',trl:'Перевод (нажмите на стих)',about:'О приложении',back:'‹ Назад',done:'Готово',books:'Книги',list:'Список книг',noaudio:'нет аудио',
+  credits:'<p><b>Текст:</b> Синодальный перевод (1876), общественное достояние. Источник: The Unbound Bible (Biola University).</p><p><b>Аудио:</b> Игорь Козлов, издательство «Благовестник» (распространяется свободно); файлы: Hugging Face, enochlev/russian-synodal-bible-kozlov.</p><p><b>Аудио:</b> А. Ф. Ефимов, «Благовестник»; файлы: The Audio Power (theaudiopower.org).</p><p>Аудио воспроизводится через интернет.</p><p><b>Перевод:</b> World English Bible, общественное достояние (ebible.org).</p>'},
+ en:{size:'Text size',theme:'Theme',light:'Light',dark:'Dark',auto:'Auto',reader:'Reader (audio)',speed:'Speed',sleep:'Sleep timer',off:'Off',m15:'15 m',m30:'30 m',m60:'60 m',chEnd:'Chapter',cont:'Continue to next chapter',follow:'Follow the verse (Kozlov)',trl:'Translation (tap a verse)',about:'About',back:'‹ Back',done:'Done',books:'Books',list:'Book list',noaudio:'no audio',
+  credits:'<p><b>Text:</b> Russian Synodal Translation (1876), public domain. Source: The Unbound Bible (Biola University).</p><p><b>Audio:</b> Igor Kozlov, Blagovestnik publishers (freely distributed); files: Hugging Face, enochlev/russian-synodal-bible-kozlov.</p><p><b>Audio:</b> A. F. Efimov, Blagovestnik; files: The Audio Power (theaudiopower.org).</p><p>Audio streams over the internet.</p><p><b>Translation:</b> World English Bible, public domain (ebible.org).</p>'}};
 const t = k => (T[S.lang] || T.ru)[k];
+const TRS = [{id:'web', file:'data/web.json', label:'English (WEB)'}]; // add more translations here later
+const TRD = {};
+function trData(){ const d = TRD[S.tr]; if (d) return Promise.resolve(d); const m = TRS.find(x => x.id === S.tr) || TRS[0]; return fetch(m.file).then(r => r.json()).then(j => (TRD[m.id] = j)); }
 const slot = () => S.slots[S.active];
 const book = i => BIBLE.books[i];
 
@@ -20,7 +23,7 @@ function applyPrefs(){
   document.documentElement.style.setProperty('--fs', S.fs + 'px');
   $('#fsRange').value = S.fs;
   document.querySelectorAll('#themeSeg button').forEach(b => b.classList.toggle('on', b.dataset.t === S.theme));
-  $('#readerSel').value = S.reader;
+  $('#readerSel').value = S.reader; if ($('#trSel').options.length) $('#trSel').value = S.tr;
   document.querySelectorAll('[data-i]').forEach(e => e.textContent = t(e.dataset.i));
   document.querySelectorAll('#langSeg button').forEach(b => b.classList.toggle('on', b.dataset.l === S.lang));
   $('#contChk').checked = S.cont; $('#followChk').checked = S.follow;
@@ -30,6 +33,10 @@ function applyPrefs(){
   document.querySelector('meta[name=theme-color]').content = dark ? '#000000' : '#ffffff';
 }
 
+function addTr(p, i, d){ if (p.querySelector('.tr')) return; const {b, c} = slot(); const s = (d.c[b] && d.c[b][c] && d.c[b][c][i]) || '—'; const e = document.createElement('span'); e.className = 'tr'; e.textContent = s; p.appendChild(e); }
+function toggleVerse(p, i){ if (window.getSelection && String(getSelection()).length) return; const ex = p.querySelector('.tr'); if (ex) { ex.remove(); return; } trData().then(d => addTr(p, i, d)).catch(() => {}); }
+function showAll(){ trData().then(d => { if (!S.trAll) return; document.querySelectorAll('#text p').forEach((p, i) => addTr(p, i, d)); }).catch(() => {}); }
+function hideAll(){ document.querySelectorAll('#text .tr').forEach(e => e.remove()); }
 function chapTitle(b, c){ return (b === 18 ? 'Псалом ' : 'Глава ') + (c + 1); }
 
 function render(keepScroll){
@@ -37,8 +44,9 @@ function render(keepScroll){
   $('#loading').hidden = true;
   $('#title').innerHTML = `${bk.n}<br><span style="font-weight:400;font-size:.75em;color:var(--muted)">${chapTitle(b,c)}</span>`;
   const frag = document.createDocumentFragment();
-  verses.forEach((t, i) => { const p = document.createElement('p'); p.id = 'v' + (i+1); const n = document.createElement('span'); n.className = 'n'; n.textContent = i+1; const v = document.createElement('span'); v.textContent = t; p.append(n, v); frag.appendChild(p); });
+  verses.forEach((t, i) => { const p = document.createElement('p'); p.id = 'v' + (i+1); const n = document.createElement('span'); n.className = 'n'; n.textContent = i+1; const v = document.createElement('span'); v.textContent = t; p.append(n, v); p.onclick = () => toggleVerse(p, i); frag.appendChild(p); });
   const tx = $('#text'); tx.innerHTML = ''; tx.appendChild(frag);
+  $('#trBtn').classList.toggle('on', S.trAll); if (S.trAll) showAll();
   const en = $('#endnav'); en.innerHTML = '';
   if (c < bk.c.length - 1) {
     en.appendChild(btn(`${chapTitle(b, c+1)} →`, () => go(b, c+1)));
@@ -101,6 +109,9 @@ function closePop(){ $('#pop').hidden = true; }
 $('#menuBtn').onclick = e => { e.stopPropagation(); $('#pop').hidden = !$('#pop').hidden; };
 document.addEventListener('click', e => { if (!$('#pop').hidden && !$('#pop').contains(e.target) && e.target !== $('#menuBtn')) closePop(); });
 document.querySelectorAll('#langSeg button').forEach(b => b.onclick = () => { S.lang = b.dataset.l; save(); applyPrefs(); if (BIBLE) render(true); });
+$('#trBtn').onclick = () => { S.trAll = !S.trAll; save(); $('#trBtn').classList.toggle('on', S.trAll); S.trAll ? showAll() : hideAll(); };
+$('#trSel').innerHTML = TRS.map(x => `<option value="${x.id}">${x.label}</option>`).join('');
+$('#trSel').onchange = e => { S.tr = e.target.value; save(); hideAll(); if (S.trAll) showAll(); };
 $('#fsRange').oninput = e => { S.fs = +e.target.value; save(); applyPrefs(); };
 document.querySelectorAll('#themeSeg button').forEach(b => b.onclick = () => { S.theme = b.dataset.t; save(); applyPrefs(); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyPrefs);

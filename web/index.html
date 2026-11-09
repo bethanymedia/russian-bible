@@ -17,7 +17,7 @@
 <body>
 <main id="reader" tabindex="-1">
   <div id="loading">Загрузка…</div>
-  <h1 id="title"></h1>
+  <div id="titleRow"><h1 id="title"></h1><button id="trBtn" aria-label="Translation">EN</button></div>
   <div id="text"></div>
   <div id="endnav"></div>
 </main>
@@ -51,6 +51,8 @@
   <div class="seg" id="themeSeg"><button data-t="light" data-i="light">Светлая</button><button data-t="dark" data-i="dark">Тёмная</button><button data-t="system" data-i="auto">Авто</button></div>
   <div class="lbl" data-i="reader">Чтец (аудио)</div>
   <select id="readerSel"><option value="kozlov">Игорь Козлов</option><option value="efimov">А. Ф. Ефимов</option></select>
+  <div class="lbl" data-i="trl">Перевод</div>
+  <select id="trSel"></select>
   <div class="lbl" data-i="speed">Скорость</div>
   <div class="seg" id="rateSeg"><button data-r="0.75">0.75×</button><button data-r="1">1×</button><button data-r="1.25">1.25×</button><button data-r="1.5">1.5×</button></div>
   <div class="lbl" data-i="sleep">Таймер сна</div>
