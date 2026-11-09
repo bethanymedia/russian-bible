@@ -27,8 +27,9 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 /* Tablet: ▶/❚❚ fixed halfway between ☰ and ‹ in every state (phone overrides to in-flow) */
 #audioBtn{position:absolute;left:var(--audio-x,72px);top:50%;transform:translate(-50%,-50%);z-index:3;width:44px;height:44px;padding:0;margin:0;display:inline-flex;align-items:center;justify-content:center;color:var(--bar-icon);flex:0 0 auto}
 #audioBtn svg{width:22px;height:22px;display:block}
-body:not(.phone) #audioBtn{width:52px;height:52px}
-body:not(.phone) #audioBtn svg{width:31px;height:31px}
+/* tablet: big ▶/❚❚ (v10: 46px glyph, ~1.5x v9) in a 58px box — fits the 64px bar */
+body:not(.phone) #audioBtn{width:58px;height:58px}
+body:not(.phone) #audioBtn svg{width:46px;height:46px}
 #audioBtn.jump{color:color-mix(in srgb,var(--num) 72%,var(--muted))}
 #audioBtn .icPause[hidden],#audioBtn .icPlay[hidden]{display:none}
 /* Playing controls hang off the fixed ▶: [chip ↺15] ▶ [time ■] (positioned against #bar) */
@@ -37,6 +38,8 @@ body:not(.phone) #audioBtn svg{width:31px;height:31px}
 #pL,#pR{position:absolute;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:4px;white-space:nowrap}
 #pL{right:calc(100% - var(--audio-x,72px) + 30px)}
 #pR{left:calc(var(--audio-x,72px) + 30px)}
+body:not(.phone) #pL{right:calc(100% - var(--audio-x,72px) + 33px)}
+body:not(.phone) #pR{left:calc(var(--audio-x,72px) + 33px)}
 #player.noTime #pTime,#player.noBack #pBack{display:none}
 #pTime{font-size:13px;color:var(--muted);flex:0 0 auto;min-width:3.4em;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 #pBack{font-size:15px;color:var(--bar-icon);padding:0 6px;height:44px;min-width:44px;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center}

@@ -725,7 +725,9 @@ GROUPS.tablet = async () => {
     const act = tabs.find(t => t[3]), ina = tabs.filter(t => !t[3]);
     const bg = await ev(page, () => getComputedStyle(document.body).backgroundColor);
     check(vp + ' active tab gray, inactive = reading background', ina.every(t => t[2] === bg) && act[2] !== bg && /rgb/.test(act[2]), [bg, tabs]);
-    check(vp + ' ▶ icon ~1.4x (31px)', await ev(page, () => Math.round($('#audioBtn svg').getBoundingClientRect().width) === 31));
+    check(vp + ' ▶ icon ~1.5x v9 (46px)', await ev(page, () => Math.round($('#audioBtn svg').getBoundingClientRect().width) === 46));
+    check(vp + ' bar height unchanged (64px)', await ev(page, () => Math.round($('#bar').getBoundingClientRect().height) === 64 && $('#audioBtn').getBoundingClientRect().height <= 60), await ev(page, () => [$('#bar').getBoundingClientRect().height, $('#audioBtn').getBoundingClientRect().height]));
+    check(vp + ' ▶ inside the bar', await ev(page, () => { const a = $('#audioBtn').getBoundingClientRect(), b = $('#bar').getBoundingClientRect(); return a.top >= b.top && a.bottom <= b.bottom; }));
     check(vp + ' no seek slider', await ev(page, () => !document.querySelector('#pSeek, #bar input[type=range]')));
     const p0 = await pos();
     const mid = await ev(page, () => { const m = $('#menuBtn').getBoundingClientRect(), p = $('#prevCh').getBoundingClientRect(), a = $('#audioBtn').getBoundingClientRect(); return Math.abs((a.left + a.width / 2) - (m.left + m.width / 2 + p.left + p.width / 2) / 2); });
@@ -737,6 +739,12 @@ GROUPS.tablet = async () => {
     const kept = () => ev(page, () => ['#pRef', '#pBack', '#pTime', '#pStop'].filter(s => { const e = $(s); return !e.hidden && getComputedStyle(e).display !== 'none' && e.getBoundingClientRect().width > 0; }));
     let k = await kept();
     check(vp + ' ↺15 and ■ kept', k.includes('#pBack') && k.includes('#pStop'), k);
+    const noOverlap = () => ev(page, () => { const a = $('#audioBtn').getBoundingClientRect(), m = $('#menuBtn').getBoundingClientRect(), p = $('#prevCh').getBoundingClientRect(); const bad = [];
+      ['#pRef', '#pBack', '#pTime', '#pStop'].forEach(s => { const e = $(s); if (e.hidden || getComputedStyle(e).display === 'none') return; const r = e.getBoundingClientRect(); if (!r.width) return; if (r.right > a.left - 1 && r.left < a.right + 1) bad.push(s + ' hits ▶'); if (r.left < m.right) bad.push(s + ' hits ☰'); if (r.right > p.left) bad.push(s + ' hits ‹'); });
+      if (a.left < m.right || a.right > p.left) bad.push('▶ hits ☰/‹'); return bad; });
+    let ov = await noOverlap();
+    check(vp + ' playing controls clear of big ❚❚', ov.length === 0, ov);
+    if (vp === 'ipadL') await page.screenshot({ path: '/workspace/shots/play-v10-playing.png' });
     await layout(page, vp + '-tabv9-playing');
     if (vp === 'ipadL') await page.screenshot({ path: '/workspace/shots/tab-v9-playing.png' });
     else await page.screenshot({ path: '/workspace/shots/tab-v9-playing-portrait.png' });
@@ -744,13 +752,14 @@ GROUPS.tablet = async () => {
     const p2 = await pos();
     k = await kept();
     check(vp + ' chip appears, ▶ unmoved', k.includes('#pRef') && JSON.stringify(p1) === JSON.stringify(p2), { k, p1, p2 });
+    ov = await noOverlap(); check(vp + ' chip clear of big ❚❚', ov.length === 0, ov);
     await layout(page, vp + '-tabv9-playing-chip');
     for (let i = 0; i < 20; i++) { await wait(420); await clickSel(page, '#nextCh'); } /* long and short labels */
     await layout(page, vp + '-tabv9-playing-later');
     await tap(page, '#audioBtn'); await waitPlaying(page, false); await wait(60);
     await ev(page, () => go(18, 21)); await wait(100);
     check(vp + ' paused ▶ same spot', JSON.stringify(await pos()) === JSON.stringify(p0), [await pos(), p0]);
-    if (vp === 'ipadL') { await ev(page, () => go(0, 0)); await wait(100); await page.screenshot({ path: '/workspace/shots/tab-v9-read.png' }); }
+    if (vp === 'ipadL') { await ev(page, () => go(0, 0)); await wait(100); await page.screenshot({ path: '/workspace/shots/tab-v9-read.png' }); await page.screenshot({ path: '/workspace/shots/play-v10.png' }); }
     await noErrors(page, vp + ' tablet');
     await page.close();
   }

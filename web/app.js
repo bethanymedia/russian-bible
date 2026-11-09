@@ -843,7 +843,7 @@ function layoutAudioBtn(){
   const mr = menu.getBoundingClientRect();
   const pr = prev.getBoundingClientRect();
   const gap = pr.left - mr.right;
-  const ideal = 52;
+  const ideal = 58;
   if (gap < ideal + 10) {
     const size = Math.max(28, Math.floor(gap - 8));
     btn.style.width = size + 'px';
@@ -852,7 +852,7 @@ function layoutAudioBtn(){
     btn.style.width = '';
     btn.style.minWidth = '';
   }
-  const btnW = btn.offsetWidth || 52;
+  const btnW = btn.offsetWidth || 58;
   const half = btnW / 2 + 2;
   const mid = (mr.left + mr.width / 2 + pr.left + pr.width / 2) / 2;
   const lo = mr.right + half;
