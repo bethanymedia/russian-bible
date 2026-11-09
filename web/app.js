@@ -193,20 +193,31 @@ function hidePlayerChrome(){
   else scheduleLayoutAudioBtn();
 }
 let stoppingAudio = false;
+function setHiddenAttr(el, hide){
+  if (!el) return;
+  if (hide) el.setAttribute('hidden', '');
+  else el.removeAttribute('hidden');
+}
 function syncAudioBtn(){
   const playing = isAudioPlaying();
+  const btn = $('#audioBtn');
+  const playIc = btn && btn.querySelector('.icPlay');
+  const pauseIc = btn && btn.querySelector('.icPause');
   if (playing && selectedVerse >= 0) {
-    $('#audioBtn').textContent = '▶';
-    $('#audioBtn').classList.add('jump');
-    $('#audioBtn').setAttribute('aria-label', 'С этой стиха');
+    setHiddenAttr(playIc, false);
+    setHiddenAttr(pauseIc, true);
+    btn.classList.add('jump');
+    btn.setAttribute('aria-label', 'С этой стиха');
   } else if (playing) {
-    $('#audioBtn').textContent = '❚❚';
-    $('#audioBtn').classList.remove('jump');
-    $('#audioBtn').setAttribute('aria-label', 'Пауза');
+    setHiddenAttr(playIc, true);
+    setHiddenAttr(pauseIc, false);
+    btn.classList.remove('jump');
+    btn.setAttribute('aria-label', 'Пауза');
   } else {
-    $('#audioBtn').textContent = '▶';
-    $('#audioBtn').classList.remove('jump');
-    $('#audioBtn').setAttribute('aria-label', 'Слушать');
+    setHiddenAttr(playIc, false);
+    setHiddenAttr(pauseIc, true);
+    btn.classList.remove('jump');
+    btn.setAttribute('aria-label', 'Слушать');
   }
   syncVerseInlinePlay();
   layoutAudioBtn();
@@ -690,23 +701,25 @@ function syncSeekFill(){
 function layoutAudioBtn(){
   const bar = $('#bar'), btn = $('#audioBtn'), menu = $('#menuBtn'), prev = $('#prevCh');
   if (!bar || !btn || !menu || !prev) return;
+  /* Playing: in-flow after ☰ — clear absolute centering vars */
+  if (!$('#player').hidden) {
+    bar.style.setProperty('--audio-pad', '0px');
+    btn.style.minWidth = '';
+    btn.style.width = '';
+    return;
+  }
   const br = bar.getBoundingClientRect();
   const mr = menu.getBoundingClientRect();
   const pr = prev.getBoundingClientRect();
   const gap = pr.left - mr.right;
-  /* Shrink ▶ when the ☰…‹ gap is too tight (narrow phones) */
   const ideal = 44;
   if (gap < ideal + 10) {
     const size = Math.max(28, Math.floor(gap - 8));
+    btn.style.width = size + 'px';
     btn.style.minWidth = size + 'px';
-    btn.style.paddingLeft = '2px';
-    btn.style.paddingRight = '2px';
-    btn.style.fontSize = Math.max(16, Math.round(size * 0.62)) + 'px';
   } else {
+    btn.style.width = '';
     btn.style.minWidth = '';
-    btn.style.paddingLeft = '';
-    btn.style.paddingRight = '';
-    btn.style.fontSize = '';
   }
   const btnW = btn.offsetWidth || 44;
   const half = btnW / 2 + 2;
@@ -714,18 +727,8 @@ function layoutAudioBtn(){
   const lo = mr.right + half;
   const hi = pr.left - half;
   const clamped = hi >= lo ? Math.min(hi, Math.max(lo, mid)) : (mr.right + pr.left) / 2;
-  const x = clamped - br.left;
-  bar.style.setProperty('--audio-x', x + 'px');
-  const leftMain = $('#leftMain');
-  if (leftMain) {
-    if ($('#player').hidden) {
-      bar.style.setProperty('--audio-pad', '0px');
-    } else {
-      const lm = leftMain.getBoundingClientRect();
-      const pad = Math.max(0, (br.left + x + half + 2) - lm.left);
-      bar.style.setProperty('--audio-pad', pad + 'px');
-    }
-  }
+  bar.style.setProperty('--audio-x', (clamped - br.left) + 'px');
+  bar.style.setProperty('--audio-pad', '0px');
 }
 let layoutAudioT = 0;
 function scheduleLayoutAudioBtn(){
@@ -865,7 +868,7 @@ $('#pSeek').oninput = e => {
   syncSeekFill();
   if (!audio.duration) return;
   const sec = e.target.value / 1000 * audio.duration;
-  $('#pTime').textContent = fmt(sec) + ' / ' + fmt(audio.duration);
+  $('#pTime').textContent = fmt(sec);
   highlightFromSeek(sec);
 };
 $('#pSeek').onchange = e => {
@@ -878,7 +881,7 @@ $('#pSeek').onchange = e => {
 };
 audio.ontimeupdate = () => {
   if (!seeking && audio.duration) $('#pSeek').value = Math.round(audio.currentTime / audio.duration * 1000);
-  $('#pTime').textContent = fmt(audio.currentTime) + ' / ' + fmt(audio.duration);
+  $('#pTime').textContent = fmt(audio.currentTime);
   syncSeekFill();
   highlight();
 };

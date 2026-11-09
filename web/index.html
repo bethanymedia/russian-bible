@@ -33,16 +33,21 @@
 <nav id="bar">
   <div id="left">
     <button id="menuBtn" aria-label="Меню">☰</button>
+    <button id="audioBtn" type="button" aria-label="Слушать">
+      <svg class="icPlay" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+      <svg class="icPause" viewBox="0 0 24 24" aria-hidden="true" hidden><path d="M7 5h3v14H7zm7 0h3v14h-3z" fill="currentColor"/></svg>
+    </button>
     <div id="leftMain">
       <div id="player" hidden>
         <button id="pRef" type="button" hidden aria-label="К текущему аудио"></button>
-        <button id="pBack" aria-label="Назад 15 секунд">↺15</button>
+        <button id="pBack" type="button" aria-label="Назад 15 секунд">↺15</button>
         <input id="pSeek" type="range" min="0" max="1000" value="0" aria-label="Позиция">
         <span id="pTime">0:00</span>
-        <button id="pStop" aria-label="Стоп">■</button>
+        <button id="pStop" type="button" aria-label="Стоп">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5" fill="currentColor"/></svg>
+        </button>
       </div>
     </div>
-    <button id="audioBtn" aria-label="Слушать">▶</button>
   </div>
   <div id="chNav">
     <button type="button" id="prevCh" aria-label="Предыдущая глава"><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><polyline points="15 5 8 12 15 19" fill="none" stroke="currentColor" stroke-width="3.75" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
