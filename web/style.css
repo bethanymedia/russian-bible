@@ -75,7 +75,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 
 /* Picker 1D: OT | NT | chapter strip */
 #sheet{bottom:calc(64px + env(safe-area-inset-bottom));border-bottom:1px solid var(--line)}
-#sheetClose{font-size:26px;line-height:1;padding:2px 10px;color:var(--muted)}
+#sheetClose{font-size:40px;line-height:1;padding:4px 14px;min-width:56px;min-height:52px;color:var(--fg);opacity:.8}
 #sheetBody.pkb{padding:0;overflow:hidden}
 .pk{display:grid;height:100%;gap:10px;padding:10px 12px;grid-template-columns:5fr 3.4fr 0.75fr;grid-template-areas:"ot nt ch"}
 .pk .tst{overflow:auto;margin:0;padding:4px 8px 10px;min-height:0}
