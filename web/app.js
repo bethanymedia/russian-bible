@@ -434,7 +434,8 @@ $('#sheetClose').onclick = closeSheet;
 
 const GROUPS = [[0,5],[5,17],[17,22],[22,27],[27,39],[39,43],[43,44],[44,58],[58,65],[65,66]];
 function openBooks(){
-  if (!$('#sheet').hidden) { closeSheet(); return; }
+  /* Toggle only when the book picker is already open; replace Толкование/Симф/About */
+  if (!$('#sheet').hidden && $('#sheetBody').classList.contains('pkb')) { closeSheet(); return; }
   openSheet(t('books'));
   const body = $('#sheetBody'); body.innerHTML = ''; body.className = 'pkb';
   const pk = document.createElement('div'); pk.className = 'pk'; body.appendChild(pk);
@@ -758,8 +759,7 @@ function layoutPhoneChrome(){
       else bar.appendChild(slots);
     }
   }
-  syncModeButtons();
-  updateStickyHdrVar();
+  syncModeButtons(); /* also refreshes sticky hdr var */
 }
 function layoutAudioBtn(){
   const bar = $('#bar'), btn = $('#audioBtn'), menu = $('#menuBtn'), prev = $('#prevCh');
