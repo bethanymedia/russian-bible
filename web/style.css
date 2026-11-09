@@ -9,7 +9,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #text{font-family:Georgia,"Times New Roman",serif;font-size:var(--fs);line-height:1.4;max-width:none;margin:0 auto}
 #text p{margin:0 0 .3em;display:grid;grid-template-columns:1.8em 1fr;column-gap:.4em}
 #text .n{color:var(--num);font-size:.7em;font-family:-apple-system,BlinkMacSystemFont,sans-serif;text-align:right;padding-top:.35em;font-variant-numeric:tabular-nums}
-#text p.hl{background:var(--hl);border-radius:4px}
+#text p.hl{background:var(--hl);border-radius:4px;box-shadow:inset 3px 0 0 var(--accent)}
+#text p.sel{background:color-mix(in srgb,var(--num) 14%,transparent);border-radius:6px;outline:1px solid color-mix(in srgb,var(--num) 35%,transparent)}
+#text p.sel .n{color:var(--accent);font-weight:700}
+#text p.hl.sel{background:var(--hl);outline:1px solid color-mix(in srgb,var(--num) 45%,transparent)}
+#audioBtn.jump{color:var(--accent)}
 #loading{text-align:center;color:var(--muted);margin-top:30vh}
 #endnav{max-width:none;margin:28px auto 0;display:flex;gap:18px;justify-content:center;flex-wrap:wrap}
 #endnav button{font-size:28px;padding:10px 26px;border:1px solid var(--line);border-radius:30px;color:var(--accent)}
@@ -177,5 +181,3 @@ body.listening #toast{border-color:var(--num)}
 .versePlay{position:fixed;z-index:25;width:44px;height:44px;border-radius:22px;border:1px solid var(--line);background:var(--bar);color:var(--accent);font-size:18px;line-height:1;box-shadow:0 6px 20px rgba(0,0,0,.22);display:flex;align-items:center;justify-content:center;padding:0}
 .versePlay:active{transform:scale(.96)}
 
-#text p.sel{background:color-mix(in srgb,var(--num) 12%,transparent);border-radius:6px}
-#text p.sel .n{color:var(--accent)}

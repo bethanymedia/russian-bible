@@ -107,12 +107,30 @@ function clearVerseSelection(){
   document.querySelectorAll('#text p.sel').forEach(el => el.classList.remove('sel'));
   selectedVerse = -1;
   hideVersePlayBubble();
+  syncAudioBtn();
 }
 function selectVerse(p, i){
   if (selectedVerse === i && p.classList.contains('sel')) { clearVerseSelection(); return; }
   clearVerseSelection();
   selectedVerse = i;
   p.classList.add('sel');
+  syncAudioBtn();
+}
+function syncAudioBtn(){
+  const playing = !$('#player').hidden && !audio.paused;
+  if (playing && selectedVerse >= 0) {
+    $('#audioBtn').textContent = '▶';
+    $('#audioBtn').classList.add('jump');
+    $('#audioBtn').setAttribute('aria-label', 'С этой стиха');
+  } else if (playing) {
+    $('#audioBtn').textContent = '❚❚';
+    $('#audioBtn').classList.remove('jump');
+    $('#audioBtn').setAttribute('aria-label', 'Пауза');
+  } else {
+    $('#audioBtn').textContent = '▶';
+    $('#audioBtn').classList.remove('jump');
+    $('#audioBtn').setAttribute('aria-label', 'Слушать');
+  }
 }
 function onVerseTap(p, i){
   if (Date.now() < suppressVerseTapUntil) return;
@@ -512,6 +530,7 @@ function playFromVerse(verseIdx){
       audio.play().catch(()=>{});
       if (note) showToast(note, 2200);
       bumpActivity();
+      syncAudioBtn();
     };
     if (audio.readyState >= 1) apply();
     else audio.addEventListener('loadedmetadata', apply, {once: true});
@@ -549,7 +568,13 @@ function syncAudioToChapter(){
 let autoNext = false;
 $('#audioBtn').onclick = () => {
   closePop();
-  if (!$('#player').hidden && !audio.paused) { audio.pause(); return; }
+  const playing = !$('#player').hidden && !audio.paused;
+  /* Playing + selected verse → jump now (no stop). Playing + no selection → pause. */
+  if (playing) {
+    if (selectedVerse >= 0) { playFromVerse(selectedVerse); return; }
+    audio.pause();
+    return;
+  }
   if (selectedVerse >= 0) {
     playFromVerse(selectedVerse);
     return;
@@ -564,6 +589,7 @@ $('#audioBtn').onclick = () => {
     clearHL(); hlIdx = -1;
     audio.play().catch(()=>{});
     bumpActivity();
+    syncAudioBtn();
   };
   if (!needLoad && audio.readyState >= 1) start();
   else audio.addEventListener('loadedmetadata', start, {once:true});
@@ -579,8 +605,8 @@ $('#followChk').onchange = e => { S.follow = e.target.checked; save(); if (!S.fo
 if ($('#haWebhook')) $('#haWebhook').onchange = e => { S.haWebhook = String(e.target.value || '').trim(); save(); };
 if ($('#haWebhook')) $('#haWebhook').onkeydown = e => { if (e.key === 'Enter') { e.target.blur(); } };
 
-audio.onplay = () => { audio.playbackRate = S.rate; $('#audioBtn').textContent = '❚❚'; bumpActivity(); };
-audio.onpause = () => { $('#audioBtn').textContent = '▶'; postHaPosition(true); };
+audio.onplay = () => { audio.playbackRate = S.rate; bumpActivity(); syncAudioBtn(); };
+audio.onpause = () => { syncAudioBtn(); postHaPosition(true); };
 audio.onerror = () => { $('#pTime').textContent = t('noaudio'); };
 const fmt = t => isFinite(t) ? Math.floor(t/60) + ':' + String(Math.floor(t%60)).padStart(2,'0') : '0:00';
 let seeking = false;
@@ -608,7 +634,14 @@ function highlight(){
   for (let j = 0; j < st.length; j++) { if (st[j] <= ms) i = j; else break; }
   if (i === hlIdx) return;
   clearHL(); hlIdx = i;
-  if (i >= 0) { const p = $('#v' + (i+1)); p.classList.add('hl'); const r = $('#reader'), top = p.offsetTop - r.clientHeight / 3; if (Math.abs(r.scrollTop - top) > r.clientHeight / 3) r.scrollTo({top, behavior:'smooth'}); }
+  if (i < 0) return;
+  const p = $('#v' + (i+1));
+  if (!p) return;
+  p.classList.add('hl');
+  /* Don't yank scroll away while user has another verse selected */
+  if (selectedVerse >= 0 && selectedVerse !== i) return;
+  const r = $('#reader'), top = p.offsetTop - r.clientHeight / 3;
+  if (Math.abs(r.scrollTop - top) > r.clientHeight / 3) r.scrollTo({top, behavior:'smooth'});
 }
 
 /* Voice commands (webkitSpeechRecognition) */
