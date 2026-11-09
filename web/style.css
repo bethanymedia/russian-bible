@@ -94,3 +94,17 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
  .pk{grid-template-columns:1fr 76px;grid-template-rows:minmax(0,1.25fr) minmax(0,1fr);grid-template-areas:"ot ch" "nt ch"}
  .pk .books button{font-size:clamp(14px,min(1.8vh,2.6vw),30px)}
 }
+
+/* Inline player: keep controls inside the left bar cell */
+#left{overflow:hidden}
+#player{overflow:hidden}
+#pTime{min-width:0;flex-shrink:1;font-variant-numeric:tabular-nums}
+#pSeek{min-width:40px}
+body.playing #left{gap:10px}
+body.playing #left>button{padding:6px 8px;min-width:40px}
+body.playing #current{max-width:24vw}
+@media (max-width:900px){
+  body.playing #pTime{font-size:16px}
+  body.playing #current{max-width:20vw}
+  body.playing #left{gap:6px}
+}
