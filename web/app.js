@@ -1,23 +1,35 @@
 'use strict';
 const $ = s => document.querySelector(s);
 const KEY = 'rb_state_v1';
-const DEF = { active: 0, slots: [{b:0,c:0,y:0},{b:18,c:21,y:0},{b:42,c:0,y:0}], fs: 24, theme: 'dark', reader: 'kozlov', cont: true, rate: 1, follow: true, lang: 'ru', tr: 'web', trAll: false, mode: '', num: 'syn' };
+const DEF = { active: 0, slots: [{b:0,c:0,y:0,vi:0,vo:0},{b:18,c:21,y:0,vi:0,vo:0},{b:42,c:0,y:0,vi:0,vo:0}], fs: 24, theme: 'dark', reader: 'kozlov', cont: true, rate: 1, follow: true, lang: 'ru', tr: 'web', trAll: false, mode: '', num: 'syn', tabsV: 2, haWebhook: '' };
 /* KJV chapter → Synodal chapter for Psalms (1-based). Built from inline markers. */
 const PS_KJV_TO_SYN = {"1":1,"2":2,"3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9,"10":9,"11":10,"12":11,"13":12,"14":13,"15":14,"16":15,"17":16,"18":17,"19":18,"20":19,"21":20,"22":21,"23":22,"24":23,"25":24,"26":25,"27":26,"28":27,"29":28,"30":29,"31":30,"32":31,"33":32,"34":33,"35":34,"36":35,"37":36,"38":37,"39":38,"40":39,"41":40,"42":41,"43":42,"44":43,"45":44,"46":45,"47":46,"48":47,"49":48,"50":49,"51":50,"52":51,"53":52,"54":53,"55":54,"56":55,"57":56,"58":57,"59":58,"60":59,"61":60,"62":61,"63":62,"64":63,"65":64,"66":65,"67":66,"68":67,"69":68,"70":69,"71":70,"72":71,"73":72,"74":73,"75":74,"76":75,"77":76,"78":77,"79":78,"80":79,"81":80,"82":81,"83":82,"84":83,"85":84,"86":85,"87":86,"88":87,"89":88,"90":89,"91":90,"92":91,"93":92,"94":93,"95":94,"96":95,"97":96,"98":97,"99":98,"100":99,"101":100,"102":101,"103":102,"104":103,"105":104,"106":105,"107":106,"108":107,"109":108,"110":109,"111":110,"112":111,"113":112,"114":113,"115":113,"116":114,"117":116,"118":117,"119":118,"120":119,"121":120,"122":121,"123":122,"124":123,"125":124,"126":125,"127":126,"128":127,"129":128,"130":129,"131":130,"132":131,"133":132,"134":133,"135":134,"136":135,"137":136,"138":137,"139":138,"140":139,"141":140,"142":141,"143":142,"144":143,"145":144,"146":145,"147":146,"148":148,"149":149,"150":150};
 
 function migrateState(s){
   if (!s || !s.slots) return s;
-  if (s.num === 'syn') return s;
-  s.slots.forEach(slot => {
-    if (slot.b === 18) {
-      const kjv = (slot.c|0) + 1;
-      const syn = PS_KJV_TO_SYN[String(kjv)] || kjv;
-      slot.c = Math.max(0, syn - 1);
-    }
-  });
-  s.num = 'syn';
+  if (s.num !== 'syn') {
+    s.slots.forEach(slot => {
+      if (slot.b === 18) {
+        const kjv = (slot.c|0) + 1;
+        const syn = PS_KJV_TO_SYN[String(kjv)] || kjv;
+        slot.c = Math.max(0, syn - 1);
+      }
+    });
+    s.num = 'syn';
+  }
   /* Old trAll-only → mode */
   if (!('mode' in s)) s.mode = s.trAll ? 'en' : '';
+  /* Ensure each slot has verse scroll fields */
+  s.slots.forEach(slot => {
+    if (slot.vi == null) slot.vi = 0;
+    if (slot.vo == null) slot.vo = 0;
+  });
+  /* One-time reset to Gen 1 / Ps 22 / Jn 1 (fixes dual Ps 22 from early deep-link tests) */
+  if ((s.tabsV|0) < 2) {
+    s.slots = JSON.parse(JSON.stringify(DEF.slots));
+    s.active = 0;
+    s.tabsV = 2;
+  }
   return s;
 }
 function load(){
@@ -55,6 +67,7 @@ function applyPrefs(){
   document.querySelectorAll('[data-i]').forEach(e => e.textContent = t(e.dataset.i));
   document.querySelectorAll('#langSeg button').forEach(b => b.classList.toggle('on', b.dataset.l === S.lang));
   $('#contChk').checked = S.cont; $('#followChk').checked = S.follow;
+  if ($('#haWebhook')) $('#haWebhook').value = S.haWebhook || '';
   document.querySelectorAll('#rateSeg button').forEach(b => b.classList.toggle('on', +b.dataset.r === S.rate));
   document.querySelectorAll('#sleepSeg button').forEach(b => b.classList.toggle('on', +b.dataset.s === sleepMode));
   const dark = S.theme === 'dark' || (S.theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
@@ -103,7 +116,7 @@ function wrapWords(text){
 }
 
 function render(keepScroll){
-  const {b, c, y} = slot(), bk = book(b), verses = bk.c[c];
+  const {b, c} = slot(), bk = book(b), verses = bk.c[c];
   $('#loading').hidden = true;
   $('#title').textContent = bk.n + ' · ' + chapTitle(b, c);
   const frag = document.createDocumentFragment();
@@ -130,9 +143,13 @@ function render(keepScroll){
   }
   renderBar();
   const r = $('#reader');
-  requestAnimationFrame(() => { r.scrollTop = keepScroll ? y : 0; });
-  if (!keepScroll) { slot().y = 0; save(); }
+  requestAnimationFrame(() => {
+    if (!keepScroll) { r.scrollTop = 0; return; }
+    restoreScroll();
+  });
+  if (!keepScroll) { const s = slot(); s.y = 0; s.vi = 0; s.vo = 0; save(); }
   syncAudioToChapter();
+  bumpActivity();
 }
 
 function btn(label, fn, cls){ const e = document.createElement('button'); e.textContent = label; e.onclick = fn; if (cls) e.className = cls; return e; }
@@ -148,28 +165,73 @@ function renderBar(){
   $('#nextCh').disabled = atEnd;
 }
 
+let chNavLock = 0;
+function chapterNavReady(){ return Date.now() >= chNavLock; }
+function lockChapterNav(){ chNavLock = Date.now() + 400; }
+
 function prevChapter(){
+  if (!chapterNavReady()) return;
   const {b, c} = slot();
   if (b === 0 && c === 0) return;
+  lockChapterNav();
   if (c > 0) go(b, c - 1);
   else go(b - 1, book(b - 1).c.length - 1);
 }
 function nextChapter(){
+  if (!chapterNavReady()) return;
   const {b, c} = slot();
   const last = book(b).c.length - 1;
   if (b === 65 && c === last) return;
+  lockChapterNav();
   if (c < last) go(b, c + 1);
   else go(b + 1, 0);
 }
 
-function go(b, c){ const s = slot(); s.b = b; s.c = c; s.y = 0; save(); closeSheet(); render(false); }
-function switchSlot(i){ if (i === S.active) return; saveScroll(); S.active = i; save(); stopAudio(); render(true); }
+function go(b, c){
+  const s = slot(); s.b = b; s.c = c; s.y = 0; s.vi = 0; s.vo = 0; save();
+  closeSheet(); closePop();
+  /* render → syncAudioToChapter continues only if audio was already playing */
+  render(false);
+  bumpActivity();
+  postHaPosition(true);
+}
+function switchSlot(i){ if (i === S.active) return; saveScroll(); S.active = i; save(); stopAudio(); render(true); bumpActivity(); }
 
 let scrollT = 0;
-function saveScroll(){ slot().y = Math.round($('#reader').scrollTop); save(); }
-$('#reader').addEventListener('scroll', () => { clearTimeout(scrollT); scrollT = setTimeout(saveScroll, 250); }, {passive:true});
+function saveScroll(){
+  const r = $('#reader');
+  const s = slot();
+  s.y = Math.round(r.scrollTop);
+  /* Prefer verse index + offset within that verse */
+  const paras = [...document.querySelectorAll('#text p')];
+  let vi = 0, vo = 0;
+  const top = r.scrollTop;
+  for (let i = 0; i < paras.length; i++) {
+    const el = paras[i];
+    const bot = el.offsetTop + el.offsetHeight;
+    if (bot > top + 4) {
+      vi = i;
+      vo = Math.max(0, Math.round(top - el.offsetTop));
+      break;
+    }
+    vi = i; vo = 0;
+  }
+  s.vi = vi; s.vo = vo;
+  save();
+}
+function restoreScroll(){
+  const r = $('#reader');
+  const s = slot();
+  const p = document.querySelector('#v' + ((s.vi|0) + 1));
+  if (p) r.scrollTop = Math.max(0, p.offsetTop + (s.vo|0));
+  else r.scrollTop = s.y|0;
+}
+$('#reader').addEventListener('scroll', () => { clearTimeout(scrollT); scrollT = setTimeout(saveScroll, 250); bumpActivity(); }, {passive:true});
 window.addEventListener('pagehide', saveScroll);
-document.addEventListener('visibilitychange', () => { if (document.hidden) saveScroll(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) saveScroll();
+  else { requestWakeLock(); bumpActivity(); }
+});
 
 /* Book and chapter picker */
 function openSheet(title, back){ $('#sheet').hidden = false; $('#sheetTitle').textContent = title; $('#sheetBack').hidden = !back; $('#sheetBack').onclick = back || null; $('#sheetBody').scrollTop = 0; $('#sheetBody').className = ''; closePop(); }
@@ -371,7 +433,15 @@ function audioURL(b, c){
 }
 function loadAudio(){ const {b, c} = slot(); audioKey = S.reader + ':' + b + ':' + c; audio.src = audioURL(b, c); audio.load(); clearHL(); }
 function stopAudio(){ audio.pause(); $('#audioBtn').textContent = '▶'; document.body.classList.remove('playing'); $('#player').hidden = true; clearHL(); }
-function syncAudioToChapter(){ const {b, c} = slot(); if (!$('#player').hidden && audioKey !== S.reader + ':' + b + ':' + c) { const was = !audio.paused || autoNext; autoNext = false; loadAudio(); if (was) audio.play().catch(()=>{}); } }
+function syncAudioToChapter(){
+  const {b, c} = slot();
+  if ($('#player').hidden) return;
+  if (audioKey === S.reader + ':' + b + ':' + c) return;
+  const wasPlaying = !audio.paused || autoNext;
+  autoNext = false;
+  loadAudio();
+  if (wasPlaying) audio.play().catch(()=>{});
+}
 let autoNext = false;
 $('#audioBtn').onclick = () => {
   closePop();
@@ -389,8 +459,11 @@ document.querySelectorAll('#sleepSeg button').forEach(b => b.onclick = () => set
 document.querySelectorAll('#rateSeg button').forEach(b => b.onclick = () => { S.rate = +b.dataset.r; audio.defaultPlaybackRate = audio.playbackRate = S.rate; save(); applyPrefs(); });
 $('#contChk').onchange = e => { S.cont = e.target.checked; save(); };
 $('#followChk').onchange = e => { S.follow = e.target.checked; save(); if (!S.follow) clearHL(); };
-audio.onplay = () => { audio.playbackRate = S.rate; $('#audioBtn').textContent = '❚❚'; };
-audio.onpause = () => { $('#audioBtn').textContent = '▶'; };
+if ($('#haWebhook')) $('#haWebhook').onchange = e => { S.haWebhook = String(e.target.value || '').trim(); save(); };
+if ($('#haWebhook')) $('#haWebhook').onkeydown = e => { if (e.key === 'Enter') { e.target.blur(); } };
+
+audio.onplay = () => { audio.playbackRate = S.rate; $('#audioBtn').textContent = '❚❚'; bumpActivity(); };
+audio.onpause = () => { $('#audioBtn').textContent = '▶'; postHaPosition(true); };
 audio.onerror = () => { $('#pTime').textContent = t('noaudio'); };
 const fmt = t => isFinite(t) ? Math.floor(t/60) + ':' + String(Math.floor(t%60)).padStart(2,'0') : '0:00';
 let seeking = false;
@@ -550,9 +623,124 @@ function readPlayFlag(){
 let deepReady = false;
 window.addEventListener('hashchange', () => { if (deepReady) applyDeepLink({play:false}); });
 
+
+/* Horizontal swipe → chapter (same as arrows) */
+(function(){
+  const edge = 20, minX = 56, maxY = 48;
+  let x0 = 0, y0 = 0, t0 = 0, tracking = false;
+  const reader = $('#reader');
+  reader.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) { tracking = false; return; }
+    if (!$('#sheet').hidden || !$('#pop').hidden) { tracking = false; return; }
+    const x = e.touches[0].clientX, y = e.touches[0].clientY;
+    if (x < edge || x > window.innerWidth - edge) { tracking = false; return; }
+    x0 = x; y0 = y; t0 = Date.now(); tracking = true;
+  }, {passive:true});
+  reader.addEventListener('touchmove', e => {
+    if (!tracking) return;
+    if (window.getSelection && String(getSelection()).length) { tracking = false; return; }
+  }, {passive:true});
+  reader.addEventListener('touchend', e => {
+    if (!tracking) return;
+    tracking = false;
+    if (!$('#sheet').hidden || !$('#pop').hidden) return;
+    if (window.getSelection && String(getSelection()).length) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - x0, dy = t.clientY - y0;
+    if (Math.abs(dx) < minX) return;
+    if (Math.abs(dx) < Math.abs(dy) * 1.4) return; /* require clear horizontal */
+    if (Math.abs(dy) > maxY && Math.abs(dx) < Math.abs(dy) * 2) return;
+    if (dx < 0) nextChapter(); else prevChapter();
+  }, {passive:true});
+})();
+
+/* Screen wake lock while reading / listening */
+let wakeLock = null, idleT = null, lastAct = Date.now();
+function bumpActivity(){
+  lastAct = Date.now();
+  requestWakeLock();
+  clearTimeout(idleT);
+  idleT = setTimeout(() => {
+    if (!audio.paused) { bumpActivity(); return; }
+    releaseWakeLock();
+  }, 10 * 60 * 1000);
+}
+async function requestWakeLock(){
+  try {
+    if (!('wakeLock' in navigator)) return;
+    if (document.hidden) return;
+    if (wakeLock) return;
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+  } catch(e) { wakeLock = null; }
+}
+function releaseWakeLock(){
+  try { if (wakeLock) wakeLock.release(); } catch(e){}
+  wakeLock = null;
+}
+document.addEventListener('pointerdown', bumpActivity, {passive:true});
+document.addEventListener('keydown', bumpActivity);
+
+
+/* Home Assistant position webhook — off unless S.haWebhook is set (HTTPS) */
+let haLast = 0, haTimer = null;
+function haPayload(){
+  if (!BIBLE) return null;
+  const {b, c, vi} = slot();
+  const bk = book(b);
+  return {
+    osis: bk.o,
+    book: bk.n,
+    abbr: bk.a,
+    chapter: c + 1,
+    verse: (vi|0) + 1,
+    reader: S.reader,
+    position: Math.round((audio && !isNaN(audio.currentTime) ? audio.currentTime : 0) * 10) / 10,
+    playing: !!(audio && !audio.paused),
+    timestamp: new Date().toISOString(),
+    deep_link: '#' + bk.o + '.' + (c + 1) + '.' + ((vi|0) + 1)
+  };
+}
+function postHaPosition(force){
+  const url = (S.haWebhook || '').trim();
+  if (!url) return;
+  if (!/^https:\/\//i.test(url)) return; /* mixed content / require HTTPS */
+  const now = Date.now();
+  if (!force && now - haLast < 8000) return;
+  const body = haPayload();
+  if (!body) return;
+  haLast = now;
+  /* text/plain + no-cors: HA webhooks accept the body without CORS headers
+     (application/json from github.io would be blocked preflight). */
+  const raw = JSON.stringify(body);
+  try {
+    const blob = new Blob([raw], {type: 'text/plain'});
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(url, blob);
+    } else {
+      fetch(url, {method:'POST', body: raw, mode:'no-cors', keepalive:true,
+        headers: {'Content-Type': 'text/plain'}}).catch(()=>{});
+    }
+  } catch(e){
+    try {
+      fetch(url, {method:'POST', body: raw, mode:'no-cors', keepalive:true,
+        headers: {'Content-Type': 'text/plain'}}).catch(()=>{});
+    } catch(e2){}
+  }
+}
+function startHaTicker(){
+  clearInterval(haTimer);
+  haTimer = setInterval(() => {
+    if (!S.haWebhook) return;
+    if (audio && !audio.paused) postHaPosition(false);
+  }, 30000);
+}
+startHaTicker();
+
 /* Start */
 applyPrefs();
 initVoiceUi();
+bumpActivity();
 fetch('data/bible.json').then(r => r.json()).then(d => {
   BIBLE = d;
   const played = applyDeepLink({ play: readPlayFlag() });

@@ -71,6 +71,9 @@
   <div class="seg" id="sleepSeg"><button data-s="0" data-i="off">Выкл</button><button data-s="15" data-i="m15">15 м</button><button data-s="30" data-i="m30">30 м</button><button data-s="60" data-i="m60">60 м</button><button data-s="-1" data-i="chEnd">Глава</button></div>
   <label class="tog"><span data-i="cont">Продолжать со следующей главы</span><input type="checkbox" id="contChk"></label>
   <label class="tog"><span data-i="follow">Следить за стихом (Козлов)</span><input type="checkbox" id="followChk"></label>
+  <div class="lbl" id="haLbl">Home Assistant</div>
+  <input id="haWebhook" type="url" placeholder="https://…/api/webhook/…" autocomplete="off" spellcheck="false">
+  <p class="hint" id="haHint">Пусто = выкл. Нужен HTTPS (Cloudflare Tunnel и т.п.). POST позиции при чтении.</p>
   <button class="link" id="voiceBtn" type="button" hidden>🎤 Голос · Voice</button>
   <button class="link" id="aboutBtn" data-i="about">О приложении</button>
 </div>

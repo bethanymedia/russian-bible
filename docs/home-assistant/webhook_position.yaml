@@ -1,0 +1,38 @@
+# Automation: store PWA reading position from webhook POST.
+# Webhook URL (Cloudflare Tunnel), paste into the Bible PWA menu:
+#   https://ha.example.com/api/webhook/bible_pwa_position
+# Requires HTTPS. The PWA posts text/plain JSON via sendBeacon / no-cors
+# (no CORS headers needed on HA). See README.md "Cloudflare Tunnel".
+- id: bible_pwa_position
+  alias: Bible PWA position webhook
+  mode: queued
+  trigger:
+    - platform: webhook
+      webhook_id: bible_pwa_position   # change me; must match the URL you paste in the app
+      allowed_methods: [POST]
+      local_only: false
+  variables:
+    # text/plain body: prefer trigger.json when HA parses it, else from_json on raw data
+    d: >-
+      {% if trigger.json is mapping %}{{ trigger.json }}
+      {% elif trigger.data is string %}{{ trigger.data | from_json }}
+      {% else %}{{ trigger.data }}{% endif %}
+  action:
+    - action: input_text.set_value
+      target: { entity_id: input_text.bible_osis }
+      data: { value: "{{ d.osis }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.bible_chapter }
+      data: { value: "{{ d.chapter }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.bible_verse }
+      data: { value: "{{ d.verse }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.bible_position }
+      data: { value: "{{ d.position }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.bible_deeplink }
+      data: { value: "{{ d.deep_link }}" }
+    - action: input_text.set_value
+      target: { entity_id: input_text.bible_reader }
+      data: { value: "{{ d.reader }}" }

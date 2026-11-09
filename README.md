@@ -31,3 +31,6 @@ Hash changes (`hashchange`) update the active reading tab.
 
 Tap 🎤 (menu or bar, shown when `SpeechRecognition` / `webkitSpeechRecognition` is available). Speaks `ru-RU` or `en-US` from the UI language. Parser lives in `voice.js` for easy extension. Mic permission and live recognition need a real device (e.g. iPad).
 
+## Home Assistant
+
+Voice Preview / Assist examples (TTS, Kozlov clips, «где я остановился?» webhook): see [docs/home-assistant/](docs/home-assistant/).

@@ -1,0 +1,11 @@
+# Paste under rest_command: in configuration.yaml (or !include)
+# Fetches Synodal chapter JSON from the static PWA host.
+bible_chapter:
+  url: "https://bethanymedia.github.io/russian-bible/data/verses/{{ osis }}.{{ chapter }}.json"
+  method: GET
+  content_type: "application/json"
+
+bible_timings:
+  url: "https://bethanymedia.github.io/russian-bible/data/kozlov_timings.json"
+  method: GET
+  content_type: "application/json"

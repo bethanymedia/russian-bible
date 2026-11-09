@@ -1,0 +1,128 @@
+# =============================================================================
+# Russian Assist sentences for the Synodal Bible PWA
+# Copy to: <config>/custom_sentences/ru/bible.yaml
+#
+# HOW TO ADD A NEW COMMAND
+#   1. Add an intent block below with example sentences (slots in braces).
+#   2. Add the same intent name to intent_script.yaml pointing at a script.
+#   3. Implement the script in scripts.yaml.
+#   4. Reload: Developer tools → YAML → All / or restart Assist pipeline.
+#
+# Slots used here: {osis}, {chapter}, {verse}
+# Synodal numbering: «псалом 22» = shepherd psalm.
+# =============================================================================
+
+language: "ru"
+
+intents:
+  BibleReadVerse:
+    data:
+      - sentences:
+          - "прочитай {osis} {chapter} стих {verse}"
+          - "прочти {osis} глава {chapter} стих {verse}"
+          - "прочитай стих {verse} главы {chapter} книги {osis}"
+          - "что написано в {osis} {chapter}:{verse}"
+          - "прочитай псалом {chapter} стих {verse}"
+
+  BiblePlayVerse:
+    data:
+      - sentences:
+          - "проиграй {osis} {chapter} стих {verse}"
+          - "включи {osis} {chapter} стих {verse}"
+          - "воспроизведи {osis} {chapter}:{verse}"
+          - "включи псалом {chapter} стих {verse} голосом козлова"
+
+  BiblePlayChapter:
+    data:
+      - sentences:
+          - "проиграй {osis} {chapter}"
+          - "включи {osis} глава {chapter}"
+          - "включи псалом {chapter}"
+          - "читай {osis} {chapter} целиком"
+
+  BibleNextChapter:
+    data:
+      - sentences:
+          - "следующая глава"
+          - "дальше глава"
+          - "следующий псалом"
+
+  BiblePrevChapter:
+    data:
+      - sentences:
+          - "предыдущая глава"
+          - "назад глава"
+          - "прошлый псалом"
+
+  BibleStop:
+    data:
+      - sentences:
+          - "стоп"
+          - "останови библию"
+          - "пауза библия"
+
+  BibleWhereWasI:
+    data:
+      - sentences:
+          - "где я остановился"
+          - "где я остановилась"
+          - "на чем я остановился"
+          - "где я читал"
+          - "верни меня к чтению"
+
+  BibleResume:
+    data:
+      - sentences:
+          - "продолжи чтение"
+          - "продолжай библию"
+          - "продолжи с места остановки"
+
+  BibleOpenTablet:
+    data:
+      - sentences:
+          - "открой {osis} {chapter} на планшете"
+          - "открой псалом {chapter} на айпаде"
+          - "покажи {osis} {chapter} стих {verse} на планшете"
+
+  BibleDailyVerse:
+    data:
+      - sentences:
+          - "стих дня"
+          - "прочитай стих дня"
+          - "библейский стих на сегодня"
+
+lists:
+  osis:
+    values:
+      - in: "бытие|бытия"
+        out: Gen
+      - in: "исход"
+        out: Exod
+      - in: "псалом|псалтирь|псалмы|псалмов"
+        out: Ps
+      - in: "притчи|притчей"
+        out: Prov
+      - in: "исаия|исаии"
+        out: Isa
+      - in: "матфея|от матфея|матфей"
+        out: Matt
+      - in: "марка|от марка"
+        out: Mark
+      - in: "луки|от луки"
+        out: Luke
+      - in: "иоанна|от иоанна|иоанн"
+        out: John
+      - in: "деяния|деяниях"
+        out: Acts
+      - in: "римлянам|к римлянам"
+        out: Rom
+      - in: "откровение|апокалипсис"
+        out: Rev
+  chapter:
+    range:
+      from: 1
+      to: 150
+  verse:
+    range:
+      from: 1
+      to: 176

@@ -1,0 +1,146 @@
+# Example scripts — adjust media_player / tts / notify entity ids.
+
+# (a1) Read verse via LOCAL Piper ru_RU TTS (Voice PE / Piper add-on — not cloud, not Nabu Casa)
+bible_tts_verse:
+  alias: "Библия: прочитать стих (TTS)"
+  fields:
+    osis: { selector: { text: null }, example: Ps }
+    chapter: { selector: { number: null }, example: 22 }
+    verse: { selector: { number: null }, example: 1 }
+    player: { selector: { entity: { domain: media_player } }, example: media_player.voice_preview }
+  sequence:
+    - action: rest_command.bible_chapter
+      data:
+        osis: "{{ osis }}"
+        chapter: "{{ chapter }}"
+      response_variable: ch
+    - variables:
+        text: "{{ ch.content.verses[verse | int - 1] }}"
+    - action: tts.speak
+      target:
+        entity_id: "{{ player }}"
+      data:
+        media_player_entity_id: "{{ player }}"
+        # Prefer your Piper ru_RU entity, e.g. tts.piper
+        message: "{{ text }}"
+
+# (a2) Play real Kozlov verse — expects a local media source URL of a pre-clipped file,
+# or a proxy that accepts ?osis&ch&verse. See ../examples/play_verse_clip.sh
+bible_play_verse_clip:
+  alias: "Библия: стих голосом Козлова"
+  fields:
+    osis: { example: Ps }
+    chapter: { example: 22 }
+    verse: { example: 1 }
+    player: { example: media_player.living_room }
+    # Point this at a Home Assistant media item you generated with play_verse_clip.sh
+    media_url: { example: "media-source://media_source/local/bible/Ps.22.1.m4a" }
+  sequence:
+    - action: media_player.play_media
+      target: { entity_id: "{{ player }}" }
+      data:
+        media_content_id: "{{ media_url }}"
+        media_content_type: music
+
+# Play whole chapter (Kozlov) from the start
+bible_play_chapter:
+  alias: "Библия: глава (Козлов)"
+  fields:
+    osis: { example: Ps }
+    chapter: { example: 22 }
+    player: { example: media_player.living_room }
+  sequence:
+    - action: media_player.play_media
+      target: { entity_id: "{{ player }}" }
+      data:
+        media_content_id: >-
+          https://huggingface.co/datasets/enochlev/russian-synodal-bible-kozlov/resolve/main/a1/kozlov/{{ osis }}/{{ chapter }}.m4a
+        media_content_type: music
+
+# Resume from last PWA position (seek). Player must support seek.
+bible_resume:
+  alias: "Библия: продолжить с места остановки"
+  fields:
+    player: { example: media_player.living_room }
+  sequence:
+    - variables:
+        osis: "{{ states('input_text.bible_osis') }}"
+        chapter: "{{ states('input_text.bible_chapter') }}"
+        pos: "{{ states('input_text.bible_position') | float(0) }}"
+    - action: media_player.play_media
+      target: { entity_id: "{{ player }}" }
+      data:
+        media_content_id: >-
+          https://huggingface.co/datasets/enochlev/russian-synodal-bible-kozlov/resolve/main/a1/kozlov/{{ osis }}/{{ chapter }}.m4a
+        media_content_type: music
+    - delay: "00:00:01"
+    - action: media_player.media_seek
+      target: { entity_id: "{{ player }}" }
+      data:
+        seek_position: "{{ pos }}"
+
+# «Где я остановился?» — speak summary + optional next-verse TTS
+bible_where_i_was:
+  alias: "Библия: где я остановился"
+  fields:
+    player: { example: media_player.voice_preview }
+  sequence:
+    - variables:
+        osis: "{{ states('input_text.bible_osis') }}"
+        chapter: "{{ states('input_text.bible_chapter') }}"
+        verse: "{{ states('input_text.bible_verse') | int(1) }}"
+        link: "{{ states('input_text.bible_deeplink') }}"
+    - action: rest_command.bible_chapter
+      data:
+        osis: "{{ osis }}"
+        chapter: "{{ chapter }}"
+      response_variable: ch
+    - variables:
+        book: "{{ ch.content.book }}"
+        cur: "{{ ch.content.verses[verse - 1] }}"
+        nxt: "{{ ch.content.verses[verse] if verse < ch.content.verses | length else '' }}"
+    - action: tts.speak
+      target: { entity_id: "{{ player }}" }
+      data:
+        media_player_entity_id: "{{ player }}"
+        message: >-
+          Вы остановились на {{ book }}, глава {{ chapter }}, стих {{ verse }}.
+          {{ cur }}
+          {% if nxt %}Следующий стих: {{ nxt }}{% endif %}
+
+bible_open_ipad:
+  alias: "Библия: открыть на iPad"
+  fields:
+    hash: { example: "Ps.22" }
+  sequence:
+    - action: notify.mobile_app_ipad
+      data:
+        title: Библия
+        message: "Открыть {{ hash }}"
+        data:
+          url: "https://bethanymedia.github.io/russian-bible/#{{ hash }}"
+          clickAction: "https://bethanymedia.github.io/russian-bible/#{{ hash }}"
+
+bible_stop:
+  alias: "Библия: стоп"
+  fields:
+    player: { example: media_player.living_room }
+  sequence:
+    - action: media_player.media_stop
+      target: { entity_id: "{{ player }}" }
+
+# Daily verse example — set osis/chapter/verse in the automation that calls this
+bible_daily_verse:
+  alias: "Библия: стих дня (TTS)"
+  fields:
+    osis: { example: Ps }
+    chapter: { example: 22 }
+    verse: { example: 1 }
+    player: { example: media_player.voice_preview }
+  sequence:
+    - action: script.bible_tts_verse
+      data:
+        osis: "{{ osis }}"
+        chapter: "{{ chapter }}"
+        verse: "{{ verse }}"
+        player: "{{ player }}"

@@ -1,0 +1,77 @@
+# Assist intent handlers. Pair with custom_sentences/ru/bible.yaml
+# How to add a command:
+#   1. New intent + sentences in custom_sentences/ru/bible.yaml
+#   2. New block here with the same intent name
+#   3. Script (or action) in scripts.yaml
+
+BibleReadVerse:
+  action:
+    - action: script.bible_tts_verse
+      data:
+        osis: "{{ osis }}"
+        chapter: "{{ chapter }}"
+        verse: "{{ verse }}"
+        player: media_player.voice_preview
+
+BiblePlayVerse:
+  action:
+    - action: script.bible_play_verse_clip
+      data:
+        osis: "{{ osis }}"
+        chapter: "{{ chapter }}"
+        verse: "{{ verse }}"
+        player: media_player.living_room
+        media_url: "media-source://media_source/local/bible/{{ osis }}.{{ chapter }}.{{ verse }}.m4a"
+
+BiblePlayChapter:
+  action:
+    - action: script.bible_play_chapter
+      data:
+        osis: "{{ osis }}"
+        chapter: "{{ chapter }}"
+        player: media_player.living_room
+
+BibleNextChapter:
+  action:
+    - action: script.bible_open_ipad
+      data:
+        hash: "{{ states('input_text.bible_osis') }}.{{ states('input_text.bible_chapter') | int + 1 }}"
+
+BiblePrevChapter:
+  action:
+    - action: script.bible_open_ipad
+      data:
+        hash: "{{ states('input_text.bible_osis') }}.{{ [states('input_text.bible_chapter') | int - 1, 1] | max }}"
+
+BibleStop:
+  action:
+    - action: script.bible_stop
+      data:
+        player: media_player.living_room
+
+BibleWhereWasI:
+  action:
+    - action: script.bible_where_i_was
+      data:
+        player: media_player.voice_preview
+
+BibleResume:
+  action:
+    - action: script.bible_resume
+      data:
+        player: media_player.living_room
+
+BibleDailyVerse:
+  action:
+    - action: script.bible_daily_verse
+      data:
+        osis: Ps
+        chapter: 22
+        verse: 1
+        player: media_player.voice_preview
+
+BibleOpenTablet:
+  action:
+    - action: script.bible_open_ipad
+      data:
+        hash: "{{ osis }}.{{ chapter }}{% if verse is defined and verse %}.{{ verse }}{% endif %}"
