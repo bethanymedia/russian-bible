@@ -11,6 +11,7 @@ Numbering is **Synodal**. Psalm 22 = «Господь – Пастырь мой�
 | File | Purpose |
 | --- | --- |
 | [README.md](./README.md) | This guide |
+| [tailscale.md](./tailscale.md) | **Recommended:** keep HA private with free Tailscale (to finish later) |
 | [rest_commands.yaml](./rest_commands.yaml) | Fetch chapter JSON |
 | [webhook_position.yaml](./webhook_position.yaml) | Receive “where I left off” from the PWA |
 | [scripts.yaml](./scripts.yaml) | TTS verse (local Piper), Kozlov clip, resume, open iPad |
@@ -24,7 +25,7 @@ Numbering is **Synodal**. Psalm 22 = «Господь – Пастырь мой�
 
 The Bible PWA is on **HTTPS** (`bethanymedia.github.io`), so the Home Assistant webhook must also be **HTTPS** (browsers block mixed content).
 
-**Recommended path:** start with the **Nabu Casa 1‑month free trial** (fastest), then move to a free option (**Cloudflare Tunnel** or **DuckDNS + Let’s Encrypt**) before the trial bills. Cancel the trial so it does not renew.
+**Recommended path:** start with the **Nabu Casa 1‑month free trial** (fastest), then switch to **free Tailscale** before the trial bills: HA stays private, with no port forwarding. See **[tailscale.md](./tailscale.md)**. Cancel the trial so it does not renew. Cloudflare Tunnel (option A) is only needed for things that require a public endpoint, such as Alexa cloud skills. DuckDNS + port forwarding (option B) is **not recommended**.
 
 When you switch hosts, only the URL in the PWA menu field **Home Assistant** needs to change — the automation id and payload stay the same.
 
@@ -94,7 +95,9 @@ Paste into the PWA menu (replaces the Nabu Casa / cloudhook URL when you leave t
 
 ---
 
-## Free long-term option B: DuckDNS + Let’s Encrypt
+## Free long-term option B: DuckDNS + Let’s Encrypt (not recommended)
+
+> ⚠️ **Not recommended.** Port forwarding exposes HA directly to the internet. Use [Tailscale](./tailscale.md) instead. This section is kept for reference only.
 
 Uses your public IP with a free HTTPS certificate. Needs **port forwarding of TCP 443** (and usually 80 for issuance) to your HA host.
 
