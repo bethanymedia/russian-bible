@@ -1,6 +1,6 @@
-:root{--num:#00875A;--bg:#fff;--fg:#1c1c1e;--muted:#8e8e93;--line:#e5e5ea;--bar:#f9f9f9;--accent:#0a66d8;--hl:#fff3b0;--fs:20px}
-:root[data-theme=dark]{--num:#34D399;--bg:#000;--fg:#e5e5e7;--muted:#8e8e93;--line:#2c2c2e;--bar:#121214;--accent:#4c9bff;--hl:#3a3410}
-@media (prefers-color-scheme:dark){:root[data-theme=system]{--num:#34D399;--bg:#000;--fg:#e5e5e7;--muted:#8e8e93;--line:#2c2c2e;--bar:#121214;--accent:#4c9bff;--hl:#3a3410}}
+:root{--ot:#B7791F;--nt:#00875A;--num:#00875A;--bg:#fff;--fg:#1c1c1e;--muted:#8e8e93;--line:#e5e5ea;--bar:#f9f9f9;--accent:#0a66d8;--hl:#fff3b0;--fs:20px}
+:root[data-theme=dark]{--ot:#E3B341;--nt:#34D399;--num:#34D399;--bg:#000;--fg:#e5e5e7;--muted:#8e8e93;--line:#2c2c2e;--bar:#121214;--accent:#4c9bff;--hl:#3a3410}
+@media (prefers-color-scheme:dark){:root[data-theme=system]{--ot:#E3B341;--nt:#34D399;--num:#34D399;--bg:#000;--fg:#e5e5e7;--muted:#8e8e93;--line:#2c2c2e;--bar:#121214;--accent:#4c9bff;--hl:#3a3410}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
@@ -34,7 +34,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #sheetBody{overflow-y:auto;flex:1;padding:12px 16px calc(24px + env(safe-area-inset-bottom))}
 .sec{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.04em;margin:18px 4px 8px}
 .books{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px}
-.books button{text-align:left;padding:10px 12px;border-radius:10px;background:var(--bar);font-size:15px}
+.books button{text-align:left;padding:10px 12px;border-radius:10px;background:var(--bar);font-size:17px}
 .books button.cur{color:var(--accent);font-weight:600}
 .chaps{display:grid;grid-template-columns:repeat(auto-fill,minmax(54px,1fr));gap:8px}
 .chaps button{padding:12px 0;border-radius:10px;background:var(--bar);font-size:16px}
@@ -64,3 +64,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #trBtn.on{opacity:1;color:var(--num)}
 #text .tr{grid-column:2;display:block;color:var(--muted);font-size:1em;line-height:1.4;margin-top:.1em}
 #text p{cursor:pointer;-webkit-tap-highlight-color:transparent}
+#sheetBack[hidden]{display:block;visibility:hidden}
+.tsts{display:grid;grid-template-columns:39fr 27fr;gap:16px;align-items:start}
+@media (max-width:820px){.tsts{grid-template-columns:1fr}}
+.tst{border:1px solid var(--line);border-top:4px solid var(--c);border-radius:12px;padding:4px 10px 12px}
+.tst.ot{--c:var(--ot)}.tst.nt{--c:var(--nt)}
+.tst .sec{color:var(--c);font-weight:700;font-size:15px;margin:10px 4px 10px}
+.tst .books{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.tst .books button.cur{color:var(--c);box-shadow:inset 0 0 0 1.5px var(--c)}

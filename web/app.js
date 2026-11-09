@@ -87,11 +87,13 @@ $('#sheetClose').onclick = closeSheet;
 function openBooks(){
   openSheet(t('books'));
   const body = $('#sheetBody'); body.innerHTML = '';
-  [['Ветхий Завет', 0, 39], ['Новый Завет', 39, 66]].forEach(([name, a, z]) => {
-    const h = document.createElement('div'); h.className = 'sec'; h.textContent = name; body.appendChild(h);
+  const wrap = document.createElement('div'); wrap.className = 'tsts'; body.appendChild(wrap);
+  [['Ветхий Завет', 0, 39, 'ot'], ['Новый Завет', 39, 66, 'nt']].forEach(([name, a, z, k]) => {
+    const box = document.createElement('div'); box.className = 'tst ' + k;
+    const h = document.createElement('div'); h.className = 'sec'; h.textContent = name; box.appendChild(h);
     const g = document.createElement('div'); g.className = 'books';
     for (let i = a; i < z; i++) g.appendChild(btn(book(i).n, () => book(i).c.length === 1 ? go(i, 0) : openChapters(i), i === slot().b ? 'cur' : ''));
-    body.appendChild(g);
+    box.appendChild(g); wrap.appendChild(box);
   });
   const cur = body.querySelector('.cur'); if (cur) cur.scrollIntoView({block:'center'});
 }
