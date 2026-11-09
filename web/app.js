@@ -113,7 +113,7 @@ function audioURL(b, c){
   return `https://huggingface.co/datasets/enochlev/russian-synodal-bible-kozlov/resolve/main/a1/kozlov/${bk.o}/${c+1}.m4a`;
 }
 function loadAudio(){ const {b, c} = slot(); audioKey = S.reader + ':' + b + ':' + c; audio.src = audioURL(b, c); audio.load(); clearHL(); }
-function stopAudio(){ audio.pause(); document.body.classList.remove('playing'); $('#player').hidden = true; clearHL(); }
+function stopAudio(){ audio.pause(); $('#audioBtn').textContent = '▶'; document.body.classList.remove('playing'); $('#player').hidden = true; clearHL(); }
 function syncAudioToChapter(){ const {b, c} = slot(); if (!$('#player').hidden && audioKey !== S.reader + ':' + b + ':' + c) { const was = !audio.paused || autoNext; autoNext = false; loadAudio(); if (was) audio.play().catch(()=>{}); } }
 let autoNext = false;
 $('#audioBtn').onclick = () => {
@@ -125,9 +125,8 @@ $('#audioBtn').onclick = () => {
   audio.play().catch(()=>{});
 };
 $('#pClose').onclick = stopAudio;
-$('#pPlay').onclick = () => audio.paused ? audio.play().catch(()=>{}) : audio.pause();
-audio.onplay = () => { $('#pPlay').textContent = '❚❚'; $('#audioBtn').textContent = '❚❚'; };
-audio.onpause = () => { $('#pPlay').textContent = '▶'; $('#audioBtn').textContent = '▶'; };
+audio.onplay = () => { $('#audioBtn').textContent = '❚❚'; };
+audio.onpause = () => { $('#audioBtn').textContent = '▶'; };
 audio.onerror = () => { $('#pTime').textContent = 'нет аудио'; };
 const fmt = t => isFinite(t) ? Math.floor(t/60) + ':' + String(Math.floor(t%60)).padStart(2,'0') : '0:00';
 let seeking = false;

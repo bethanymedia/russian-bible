@@ -22,16 +22,17 @@
   <div id="endnav"></div>
 </main>
 
-<div id="player" hidden>
-  <button id="pPlay" aria-label="Воспроизвести">▶</button>
-  <input id="pSeek" type="range" min="0" max="1000" value="0" aria-label="Позиция">
-  <span id="pTime">0:00</span>
-  <button id="pClose" aria-label="Закрыть">✕</button>
-</div>
 
 <nav id="bar">
   <div id="slots"></div>
-  <button id="current"></button>
+  <div id="mid">
+    <button id="current"></button>
+    <div id="player" hidden>
+      <input id="pSeek" type="range" min="0" max="1000" value="0" aria-label="Позиция">
+      <span id="pTime">0:00</span>
+      <button id="pClose" aria-label="Остановить">✕</button>
+    </div>
+  </div>
   <div id="right">
     <button id="audioBtn" aria-label="Слушать">▶</button>
     <button id="menuBtn" aria-label="Меню">☰</button>
