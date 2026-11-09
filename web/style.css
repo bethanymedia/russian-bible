@@ -81,9 +81,9 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .pk .tst{overflow:auto;margin:0;padding:4px 8px 10px;min-height:0}
 .pk .tst.ot{grid-area:ot}.pk .tst.nt{grid-area:nt}.pk .chc{grid-area:ch}
 .pk .tst .sec{font-size:17px}
-.pk .books{display:grid;gap:5px}
+.pk .books{display:grid;gap:min(5px,.6vh)}
 .pk .ot .books{grid-template-columns:repeat(3,1fr)}.pk .nt .books{grid-template-columns:repeat(2,1fr)}
-.pk .books button{font-size:23px;padding:6px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pk .books button{font-size:clamp(14px,min(2.8vh,1.95vw),30px);padding:.26em .22em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pk .books button.cur{color:var(--c);box-shadow:inset 0 0 0 1.5px var(--c);font-weight:400}
 .pk .chc{border:1px solid var(--line);border-top:4px solid var(--c);border-radius:12px;display:flex;flex-direction:column;min-height:0;min-width:0}
 .pk .chc .sec{color:var(--c);font-weight:700;font-size:12px;margin:10px 6px 8px;text-align:center}
@@ -92,5 +92,5 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .pk .chc .cg button.cur{background:var(--c);color:#000;font-weight:700}
 @media (orientation:portrait){
  .pk{grid-template-columns:1fr 76px;grid-template-rows:minmax(0,1.25fr) minmax(0,1fr);grid-template-areas:"ot ch" "nt ch"}
- .pk .books button{font-size:21px}
+ .pk .books button{font-size:clamp(14px,min(1.8vh,2.6vw),30px)}
 }
