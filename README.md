@@ -34,3 +34,13 @@ Tap 🎤 (menu or bar, shown when `SpeechRecognition` / `webkitSpeechRecognition
 ## Home Assistant
 
 Voice Preview / Assist examples (TTS, Kozlov clips, «где я остановился?» webhook): see [docs/home-assistant/](docs/home-assistant/).
+
+## Tests
+
+`tests/qa.js` is a headless-Chrome end-to-end suite (audio, wake lock and beacons are mocked
+by `tests/mocks.js`). It covers reading, selection, playback, modes, picker, menu, deep links,
+saved-state edge cases, the service worker update, and a layout check at iPad and phone sizes.
+
+    npm i puppeteer-core            # or set PUPPETEER_CORE=/path/to/puppeteer-core
+    CHROME=/usr/bin/google-chrome node tests/qa.js
+    ONLY=audio,layout SHOTS=/tmp/shots node tests/qa.js   # subset + screenshots

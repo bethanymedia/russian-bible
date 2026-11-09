@@ -9,7 +9,7 @@ function snapRate(r){
   for (const x of RATES) { const d = Math.abs(r - x); if (d < bd) { best = x; bd = d; } }
   return best;
 }
-const DEF = { active: 0, slots: [{b:0,c:0,y:0,vi:0,vo:0},{b:18,c:21,y:0,vi:0,vo:0},{b:42,c:0,y:0,vi:0,vo:0}], fs: 24, theme: 'dark', reader: 'kozlov', cont: true, rate: 1, follow: true, lang: 'ru', tr: 'web', trAll: false, mode: '', num: 'syn', tabsV: 2, haWebhook: '', adv: false, fsUser: false, driveSync: false, syncAt: 0 };
+const DEF = { active: 0, slots: [{b:0,c:0,y:0,vi:0,vo:0},{b:18,c:21,y:0,vi:0,vo:0},{b:42,c:0,y:0,vi:0,vo:0}], fs: 24, theme: 'dark', reader: 'kozlov', cont: true, rate: 1, follow: true, lang: 'ru', tr: 'web', trAll: false, mode: '', num: 'syn', tabsV: 2, haWebhook: '', adv: false, driveSync: false, syncAt: 0 };
 /* KJV chapter → Synodal chapter for Psalms (1-based). Built from inline markers. */
 const PS_KJV_TO_SYN = {"1":1,"2":2,"3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9,"10":9,"11":10,"12":11,"13":12,"14":13,"15":14,"16":15,"17":16,"18":17,"19":18,"20":19,"21":20,"22":21,"23":22,"24":23,"25":24,"26":25,"27":26,"28":27,"29":28,"30":29,"31":30,"32":31,"33":32,"34":33,"35":34,"36":35,"37":36,"38":37,"39":38,"40":39,"41":40,"42":41,"43":42,"44":43,"45":44,"46":45,"47":46,"48":47,"49":48,"50":49,"51":50,"52":51,"53":52,"54":53,"55":54,"56":55,"57":56,"58":57,"59":58,"60":59,"61":60,"62":61,"63":62,"64":63,"65":64,"66":65,"67":66,"68":67,"69":68,"70":69,"71":70,"72":71,"73":72,"74":73,"75":74,"76":75,"77":76,"78":77,"79":78,"80":79,"81":80,"82":81,"83":82,"84":83,"85":84,"86":85,"87":86,"88":87,"89":88,"90":89,"91":90,"92":91,"93":92,"94":93,"95":94,"96":95,"97":96,"98":97,"99":98,"100":99,"101":100,"102":101,"103":102,"104":103,"105":104,"106":105,"107":106,"108":107,"109":108,"110":109,"111":110,"112":111,"113":112,"114":113,"115":113,"116":114,"117":116,"118":117,"119":118,"120":119,"121":120,"122":121,"123":122,"124":123,"125":124,"126":125,"127":126,"128":127,"129":128,"130":129,"131":130,"132":131,"133":132,"134":133,"135":134,"136":135,"137":136,"138":137,"139":138,"140":139,"141":140,"142":141,"143":142,"144":143,"145":144,"146":145,"147":146,"148":148,"149":149,"150":150};
 
@@ -25,8 +25,6 @@ function migrateState(s){
     });
     s.num = 'syn';
   }
-  /* Old trAll-only → mode */
-  if (!('mode' in s)) s.mode = s.trAll ? 'en' : '';
   /* Ensure each slot has verse scroll fields */
   s.slots.forEach(slot => {
     if (slot.vi == null) slot.vi = 0;
@@ -44,26 +42,47 @@ function migrateState(s){
   if (fs > 64) fs = 64;
   s.fs = Math.round(fs / 2) * 2;
   s.rate = snapRate(s.rate);
+  return sanitizeState(s);
+}
+/* Clamp anything that would crash render() or leave a setting with no button lit */
+function cleanSlot(x, dflt){
+  x = (x && typeof x === 'object') ? x : dflt;
+  const n = (v, lo, hi) => { v = Math.floor(+v); return isFinite(v) ? Math.min(hi, Math.max(lo, v)) : lo; };
+  return { b: n(x.b, 0, 65), c: n(x.c, 0, 149), y: n(x.y, 0, 1e7), vi: n(x.vi, 0, 199), vo: n(x.vo, -2000, 1e5) };
+}
+function sanitizeState(s){
+  s.slots = DEF.slots.map((d, i) => cleanSlot(s.slots[i], d));
+  s.active = Math.min(2, Math.max(0, Math.floor(+s.active) || 0));
+  if (!['light', 'dark', 'system'].includes(s.theme)) s.theme = DEF.theme;
+  if (!['kozlov', 'efimov'].includes(s.reader)) s.reader = DEF.reader;
+  if (!['ru', 'en'].includes(s.lang)) s.lang = DEF.lang;
+  if (!['', 'tolk', 'simf', 'en'].includes(s.mode)) s.mode = '';
+  if (typeof s.haWebhook !== 'string') s.haWebhook = '';
+  ['cont', 'follow'].forEach(k => { if (typeof s[k] !== 'boolean') s[k] = DEF[k]; });
+  s.syncAt = +s.syncAt > 0 ? +s.syncAt : 0;
   return s;
+}
+/* Once the Bible is loaded: chapter indexes must exist in their book */
+function clampSlotsToBible(){
+  S.slots.forEach(x => { const n = book(x.b).c.length; if (x.c >= n) { x.c = n - 1; x.y = x.vi = x.vo = 0; } });
 }
 function isPhone(){ return !!(window.matchMedia && (window.matchMedia('(max-width:600px)').matches || window.matchMedia('(max-height:500px) and (max-width:1000px)').matches)); }
 function load(){
   try {
     const s = JSON.parse(localStorage.getItem(KEY));
-    if (s && s.slots && s.slots.length === 3) {
-      const m = migrateState(Object.assign({}, DEF, s));
-      /* Existing installs keep their font; only brand-new phone users get 20 */
-      if (!('fsUser' in m)) m.fsUser = true;
-      localStorage.setItem(KEY, JSON.stringify(m));
+    if (s && Array.isArray(s.slots) && s.slots.length === 3) {
+      /* Old trAll-only installs → mode (check before DEF fills in mode) */
+      if (!('mode' in s)) s.mode = s.trAll ? 'en' : '';
+      const m = migrateState(Object.assign({}, DEF, s, { num: s.num, tabsV: s.tabsV }));
+      try { localStorage.setItem(KEY, JSON.stringify(m)); } catch(e){}
       return m;
     }
   } catch(e){}
   const d = JSON.parse(JSON.stringify(DEF));
-  d.fsUser = false;
-  if (isPhone()) d.fs = 20;
+  if (isPhone()) d.fs = 20; /* brand-new phone installs start at 20 */
   return d;
 }
-function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} }
 function bumpSyncAt(){
   S.syncAt = Date.now();
   try { if (window.RBSync) RBSync.schedulePush(); } catch(e){}
@@ -165,43 +184,60 @@ function stickyHdrOffset(){
 }
 function updateStickyHdrVar(){
   const px = stickyHdrOffset();
-  document.documentElement.style.setProperty('--sticky-hdr', px + 'px');
+  const root = document.documentElement.style;
+  root.setProperty('--sticky-hdr', px + 'px');
+  const row = $('#titleRow');
+  root.setProperty('--hdr-h', (isPhone() && row ? Math.ceil(row.getBoundingClientRect().height) : 0) + 'px');
+}
+/* App-driven scrolls (restore, follow, jumps) are marked so they don't swallow the
+   next verse tap the way a finger fling should. */
+let progScrollUntil = 0, lastTouchAt = 0;
+function readerScrollTo(top, smooth){
+  const r = $('#reader');
+  top = Math.max(0, Math.round(top));
+  if (Math.abs(r.scrollTop - top) < 1) return;
+  progScrollUntil = Date.now() + (smooth ? 1000 : 150);
+  if (smooth) r.scrollTo({ top, behavior: 'smooth' }); else r.scrollTop = top;
 }
 function scrollVerseIntoPlace(p, opts){
   opts = opts || {};
   if (!p) return;
   const r = $('#reader');
   const pad = stickyHdrOffset();
-  if (opts.exact != null) {
-    r.scrollTop = Math.max(0, p.offsetTop + (opts.exact|0) - pad);
-    return;
-  }
-  if (opts.block === 'center') {
-    const top = Math.max(0, p.offsetTop - pad - r.clientHeight / 3);
-    r.scrollTo({ top, behavior: opts.behavior || 'smooth' });
-    return;
-  }
+  if (opts.exact != null) { readerScrollTo(p.offsetTop + (opts.exact|0) - pad, false); return; }
+  const smooth = (opts.behavior || 'smooth') === 'smooth';
+  if (opts.block === 'center') { readerScrollTo(p.offsetTop - pad - r.clientHeight / 3, smooth); return; }
   /* default: ensure visible below sticky header */
-  const top = Math.max(0, p.offsetTop - pad - 8);
-  r.scrollTo({ top, behavior: opts.behavior || 'smooth' });
+  readerScrollTo(p.offsetTop - pad - 8, smooth);
 }
 
 function setMode(m){
+  /* Measure the place before the header changes (it turns sticky while a mode is on) */
+  const a = BIBLE && document.querySelector('#text p') ? captureAnchor() : null;
   S.mode = (S.mode === m) ? '' : m;
-  S.trAll = S.mode === 'en';
   save();
-  syncModeButtons();
-  if (S.mode === 'en') showAll(); else hideAll();
-  if (S.mode !== 'tolk' && S.mode !== 'simf') {
-    if (!$('#sheet').hidden && $('#sheetBody').classList.contains('feat')) closeSheet();
-  }
-  /* Re-bind verse clicks for word mode */
-  if (BIBLE) render(true);
+  /* Any mode change closes the previous mode's panel (Толкование / Симфония) */
+  if (!$('#sheet').hidden && $('#sheetBody').classList.contains('feat')) closeSheet();
+  if (BIBLE) render(true, a); /* rebuilds verses (word spans, English lines) */
+  else syncModeButtons();
 }
 
 function addTr(p, i, d){ if (p.querySelector('.tr')) return; const {b, c} = slot(); const s = (d.c[b] && d.c[b][c] && d.c[b][c][i]) || '—'; const e = document.createElement('span'); e.className = 'tr'; e.textContent = s; p.appendChild(e); }
-function showAll(){ trData().then(d => { if (S.mode !== 'en') return; document.querySelectorAll('#text p').forEach((p, i) => addTr(p, i, d)); }).catch(() => {}); }
-function hideAll(){ document.querySelectorAll('#text .tr').forEach(e => e.remove()); }
+/* English lines. render() adds them in the same pass when the file is cached; the first
+   time, they arrive later and the place restored before them is re-applied. */
+function showAll(restored){
+  trData().then(d => {
+    const ps = document.querySelectorAll('#text p');
+    if (S.mode !== 'en' || !ps.length || document.querySelectorAll('#text .tr').length === ps.length) return;
+    const r = $('#reader');
+    const a = restored && Math.abs(r.scrollTop - restored.st) < 2 ? restored : captureAnchor();
+    keepPlace(() => ps.forEach((p, i) => addTr(p, i, d)), a);
+  }).catch(() => {});
+}
+function hideAll(){
+  if (!document.querySelector('#text .tr')) return;
+  keepPlace(() => document.querySelectorAll('#text .tr').forEach(e => e.remove()));
+}
 
 /* Verse selection + ▶ bubble (no per-verse English). Ignore taps right after scroll. */
 let selectedVerse = -1, suppressVerseTapUntil = 0;
@@ -219,7 +255,8 @@ function selectVerse(p, i){
   syncVerseInlinePlay();
   syncAudioBtn();
 }
-function isAudioPlaying(){ return !audio.paused; }
+/* 'Playing' includes a start that is waiting for the file to load (▶ was just tapped) */
+function isAudioPlaying(){ return !audio.paused || startPending; }
 function hasAudioSession(){ return audioBook >= 0 && !!(audio && audio.src); }
 function showPlayerChrome(){
   $('#player').hidden = false;
@@ -234,7 +271,6 @@ function hidePlayerChrome(){
   if (BIBLE) renderBar();
   else scheduleLayoutAudioBtn();
 }
-let stoppingAudio = false;
 function setHiddenAttr(el, hide){
   if (!el) return;
   if (hide) el.setAttribute('hidden', '');
@@ -272,10 +308,6 @@ function onVerseTap(p, i){
   /* no mode, or EN mode: select + play bubble */
   selectVerse(p, i);
 }
-$('#reader').addEventListener('scroll', () => {
-  suppressVerseTapUntil = Date.now() + 450;
-  /* keep selection while scrolling; only suppress accidental tap */
-}, {passive:true});
 function chapTitle(b, c){ return (b === 18 ? 'Псалом ' : 'Глава ') + (c + 1); }
 
 function wrapWords(text){
@@ -283,8 +315,12 @@ function wrapWords(text){
   return text.replace(/([А-Яа-яЁёA-Za-zʹ᾽\-]+)/g, '<span class="w">$1</span>');
 }
 
-function render(keepScroll){
+let renderedKey = '';
+function render(keepScroll, anchor){
   const {b, c} = slot(), bk = book(b), verses = bk.c[c];
+  /* Re-render of the chapter on screen (mode/language/sync): keep the live place */
+  const live = anchor || ((keepScroll && renderedKey === S.active + ':' + b + ':' + c && document.querySelector('#text p')) ? captureAnchor() : null);
+  renderedKey = S.active + ':' + b + ':' + c;
   $('#loading').hidden = true;
   $('#title').textContent = bk.n + ' · ' + chapTitle(b, c);
   const frag = document.createDocumentFragment();
@@ -302,7 +338,8 @@ function render(keepScroll){
   const tx = $('#text'); tx.innerHTML = ''; tx.appendChild(frag);
   selectedVerse = -1; hideVersePlayBubble();
   syncModeButtons();
-  if (S.mode === 'en') showAll(); else hideAll();
+  const trCached = S.mode === 'en' && TRD[S.tr];
+  if (trCached) tx.querySelectorAll('p').forEach((p, i) => addTr(p, i, trCached));
   const en = $('#endnav'); en.innerHTML = '';
   if (c < bk.c.length - 1) {
     en.appendChild(btn(`${chapTitle(b, c+1)} →`, () => go(b, c+1)));
@@ -312,11 +349,13 @@ function render(keepScroll){
   }
   renderBar();
   const r = $('#reader');
-  requestAnimationFrame(() => {
-    if (!keepScroll) { r.scrollTop = 0; return; }
-    restoreScroll();
-  });
-  if (!keepScroll) { const s = slot(); s.y = 0; s.vi = 0; s.vo = 0; save(); }
+  if (!keepScroll) { const s = slot(); s.y = 0; s.vi = 0; s.vo = 0; save(); readerScrollTo(0, false); liveAnchor = captureAnchor(); }
+  else if (live) keepPlace(() => {}, live);
+  else restoreScroll();
+  if (S.mode === 'en' && !trCached) {
+    const used = live || { vi: slot().vi, vo: slot().vo, y: slot().y };
+    showAll(Object.assign({ st: r.scrollTop }, used));
+  }
   /* Navigation never reloads audio — only refresh chrome / follow when view matches */
   updateAudioRefChip();
   if (viewMatchesAudio() && !$('#player').hidden && S.follow && S.reader === 'kozlov') {
@@ -389,38 +428,60 @@ function switchSlot(i){
   bumpActivity();
 }
 
-let scrollT = 0;
-function saveScroll(){
+let scrollT = 0, liveAnchor = null;
+/* Verse at the top of the visible text (just under the sticky header) + offset into it.
+   Save and restore both measure below the header, so round trips don't drift. */
+function captureAnchor(){
   const r = $('#reader');
-  const s = slot();
-  s.y = Math.round(r.scrollTop);
-  /* Prefer verse index + offset within that verse */
-  const paras = [...document.querySelectorAll('#text p')];
-  let vi = 0, vo = 0;
-  const top = r.scrollTop;
+  const top = r.scrollTop + stickyHdrOffset();
+  const paras = document.querySelectorAll('#text p');
+  let vi = 0, vo = 0, vf = 0;
   for (let i = 0; i < paras.length; i++) {
     const el = paras[i];
-    const bot = el.offsetTop + el.offsetHeight;
-    if (bot > top + 4) {
-      vi = i;
-      vo = Math.max(0, Math.round(top - el.offsetTop));
+    vi = i; vo = 0;
+    if (el.offsetTop + el.offsetHeight > top + 4) {
+      /* negative vo: still above verse 1 (title showing) */
+      vo = i === 0 ? Math.round(top - el.offsetTop) : Math.max(0, Math.round(top - el.offsetTop));
+      vf = el.offsetHeight ? Math.max(0, vo) / el.offsetHeight : 0;
       break;
     }
-    vi = i; vo = 0;
   }
-  s.vi = vi; s.vo = vo;
+  return { vi, vo, vf, y: Math.round(r.scrollTop) };
+}
+function applyAnchor(a){
+  if (!a) return;
+  updateStickyHdrVar();
+  const p = document.querySelector('#v' + ((a.vi|0) + 1));
+  if (!p) { readerScrollTo(a.y|0, false); return; }
+  if ((a.vi|0) === 0 && (a.vo|0) === 0 && !a.vf) { readerScrollTo(0, false); return; } /* chapter start: title showing */
+  /* within a verse, keep the same fraction of it (it reflows on rotation / resize) */
+  const off = (a.vo|0) < 0 ? (a.vo|0) : (a.vf != null ? Math.round(a.vf * p.offsetHeight) : (a.vo|0));
+  scrollVerseIntoPlace(p, { exact: Math.min(off, Math.max(0, p.offsetHeight - 4)) });
+}
+/* Run fn (font size, English lines, rotation…) without losing the reading place */
+function keepPlace(fn, a){
+  a = a || captureAnchor();
+  fn();
+  applyAnchor(a);
+  liveAnchor = a;
+}
+function saveScroll(){
+  if (!BIBLE || !document.querySelector('#text p')) return;
+  const a = captureAnchor(), s = slot();
+  s.y = a.y; s.vi = a.vi; s.vo = a.vo; /* px offset; vf is only for live reflow */
   bumpSyncAt();
   save();
 }
-function restoreScroll(){
-  const r = $('#reader');
-  const s = slot();
-  updateStickyHdrVar();
-  const p = document.querySelector('#v' + ((s.vi|0) + 1));
-  if (p) scrollVerseIntoPlace(p, { exact: s.vo|0, behavior: 'auto' });
-  else r.scrollTop = Math.max(0, (s.y|0) - stickyHdrOffset());
-}
-$('#reader').addEventListener('scroll', () => { clearTimeout(scrollT); scrollT = setTimeout(saveScroll, 250); bumpActivity(); }, {passive:true});
+function restoreScroll(){ const s = slot(); applyAnchor({ vi: s.vi, vo: s.vo, y: s.y }); liveAnchor = captureAnchor(); }
+['touchstart', 'touchmove'].forEach(t => $('#reader').addEventListener(t, () => { lastTouchAt = Date.now(); }, {passive:true}));
+$('#reader').addEventListener('scroll', () => {
+  /* a finger scroll/fling: ignore the tap that stops it (not for app-driven scrolls) */
+  const now = Date.now();
+  if (now > progScrollUntil || now - lastTouchAt < 1000) suppressVerseTapUntil = now + 450;
+  liveAnchor = captureAnchor();
+  clearTimeout(scrollT); scrollT = setTimeout(saveScroll, 250);
+  bumpActivity();
+}, {passive:true});
 window.addEventListener('pagehide', saveScroll);
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) saveScroll();
@@ -486,15 +547,17 @@ document.querySelectorAll('#langSeg button').forEach(b => b.onclick = () => { S.
 document.querySelectorAll('.modeBtn').forEach(b => b.onclick = () => setMode(b.dataset.mode));
 $('#trSel').innerHTML = TRS.map(x => `<option value="${x.id}">${x.label}</option>`).join('');
 $('#trSel').onchange = e => { S.tr = e.target.value; save(); hideAll(); if (S.mode === 'en') showAll(); };
-$('#fsRange').oninput = e => { S.fs = Math.min(64, Math.max(18, +e.target.value)); S.fsUser = true; save(); applyPrefs(); };
+$('#fsRange').oninput = e => { keepPlace(() => { S.fs = Math.min(64, Math.max(18, +e.target.value)); save(); applyPrefs(); }); };
 document.querySelectorAll('#themeSeg button').forEach(b => b.onclick = () => { S.theme = b.dataset.t; save(); applyPrefs(); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyPrefs);
+/* Reader toggle. Playing: continue in the new voice from the same verse.
+   Paused/stopped: switch quietly; ▶ later resumes at that verse in the new voice. */
 function switchReader(next){
   if (!next || next === S.reader) return;
-  const wasPlaying = !audio.paused;
-  const playerOpen = hasAudioSession() || !$('#player').hidden;
-  const b = audioBook >= 0 ? audioBook : slot().b;
-  const c = audioChap >= 0 ? audioChap : slot().c;
+  const wasPlaying = isAudioPlaying();
+  const session = hasAudioSession();
+  const b = session ? audioBook : slot().b;
+  const c = session ? audioChap : slot().c;
   let verseIdx = selectedVerse >= 0 && viewMatchesAudio() ? selectedVerse
     : (hlIdx >= 0 ? hlIdx
     : (verseIndexAtTime() >= 0 ? verseIndexAtTime() : lastFollowVerse));
@@ -503,24 +566,9 @@ function switchReader(next){
   S.reader = next;
   save();
   applyPrefs();
-  if (!playerOpen && !wasPlaying) return;
-  showPlayerChrome();
-  loadAudio(b, c);
-  const start = () => {
-    let seek = 0;
-    if (S.reader === 'kozlov') {
-      const st = TIMES[book(b).o + '.' + (c + 1)];
-      if (st && st.length === book(b).c[c].length && verseIdx < st.length)
-        seek = st[verseIdx] / 1000;
-    }
-    try { audio.currentTime = seek; } catch(e){}
-    if (wasPlaying || playerOpen) audio.play().catch(()=>{});
-    if (S.follow && S.reader === 'kozlov') highlight({ force: true, time: seek, scroll: true, instant: true });
-    syncAudioBtn();
-    bumpActivity();
-  };
-  if (audio.readyState >= 1) start();
-  else audio.addEventListener('loadedmetadata', start, { once: true });
+  if (!session) return;
+  if (wasPlaying) playAt(b, c, verseIdx, { scroll: true });
+  else { loadAudio(b, c); pendingVerse = verseIdx; }
 }
 document.querySelectorAll('#readerSeg button').forEach(b => b.onclick = () => switchReader(b.dataset.r));
 $('#aboutBtn').onclick = () => {
@@ -676,60 +724,17 @@ function syncVerseInlinePlay(forceHide){
   };
   p.appendChild(b);
 }
+/* ▶ on a selected verse (inline or bar): play the viewed chapter from that verse */
 function playFromVerse(verseIdx){
   const {b, c} = slot();
-  const key = book(b).o + '.' + (c + 1);
-  const st = TIMES[key];
-  const nVerses = book(b).c[c].length;
-  let seekSec = 0;
-  let note = '';
-  if (S.reader === 'kozlov' && st && st.length === nVerses && verseIdx >= 0 && verseIdx < st.length) {
-    seekSec = st[verseIdx] / 1000;
-  } else if (S.reader === 'kozlov') {
-    note = 'Нет тайминга — с начала главы';
-  } else {
-    if (verseIdx > 0) note = 'С начала главы';
-  }
-  const sameChapter = audioBook === b && audioChap === c && audioKey === S.reader + ':' + b + ':' + c;
-  const alreadyOpen = !$('#player').hidden;
-  showPlayerChrome();
-  const startAt = () => {
-    const apply = () => {
-      clearVerseSelection();
-      lastFollowVerse = verseIdx;
-      hlIdx = -1;
-      clearHL();
-      const p = $('#v' + (verseIdx + 1));
-      if (p) {
-        p.classList.add('hl');
-        hlIdx = verseIdx;
-        scrollVerseIntoPlace(p, { block: 'center', behavior: 'smooth' });
-      }
-      let started = false;
-      const go = () => {
-        if (started) return; started = true;
-        audio.play().catch(()=>{});
-        if (note) showToast(note, 2200);
-        bumpActivity();
-        syncAudioBtn();
-        updateAudioRefChip();
-      };
-      try { audio.currentTime = seekSec; } catch(e){}
-      if (Math.abs((audio.currentTime || 0) - seekSec) > 0.35) {
-        const onSeek = () => { audio.removeEventListener('seeked', onSeek); go(); };
-        audio.addEventListener('seeked', onSeek);
-        try { audio.currentTime = seekSec; } catch(e){ go(); }
-        setTimeout(() => { audio.removeEventListener('seeked', onSeek); go(); }, 400);
-      } else go();
-    };
-    if (audio.readyState >= 1) apply();
-    else audio.addEventListener('loadedmetadata', apply, {once: true});
-  };
-  if (sameChapter && alreadyOpen && audio.src) {
-    startAt();
-  } else {
-    loadAudio(b, c);
-    startAt();
+  clearVerseSelection();
+  const exact = playAt(b, c, verseIdx, { note: true, scroll: false });
+  const p = $('#v' + (verseIdx + 1));
+  if (p && exact) {
+    clearHL();
+    p.classList.add('hl');
+    hlIdx = verseIdx;
+    scrollVerseIntoPlace(p, { block: 'center', behavior: 'smooth' });
   }
 }
 
@@ -798,8 +803,21 @@ function scheduleLayoutAudioBtn(){
   clearTimeout(layoutAudioT);
   layoutAudioT = setTimeout(layoutAudioBtn, 30);
 }
-window.addEventListener('resize', () => { layoutPhoneChrome(); scheduleLayoutAudioBtn(); updateStickyHdrVar(); });
-window.addEventListener('orientationchange', () => setTimeout(() => { layoutPhoneChrome(); layoutAudioBtn(); updateStickyHdrVar(); }, 120));
+/* Rotation / resize: re-lay out the bar and header. When the width changes (rotation),
+   text reflows, so put the verse that was at the top back at the top. Height-only
+   changes (keyboard, browser toolbars) leave the scroll alone. */
+let lastW = window.innerWidth;
+function onViewportChange(){
+  const w = window.innerWidth, reflow = w !== lastW && BIBLE && liveAnchor;
+  lastW = w;
+  const a = liveAnchor;
+  layoutPhoneChrome();
+  if (BIBLE) renderBar(); /* phone/tablet label format can differ */
+  if (reflow) keepPlace(() => {}, a);
+  scheduleLayoutAudioBtn();
+}
+window.addEventListener('resize', onViewportChange);
+window.addEventListener('orientationchange', () => setTimeout(onViewportChange, 120));
 
 /* Audio — session (audioBook/audioChap) is independent of the viewed slot */
 const audio = $('#audio');
@@ -845,8 +863,65 @@ function audioURL(b, c){
   }
   return `https://huggingface.co/datasets/enochlev/russian-synodal-bible-kozlov/resolve/main/a1/kozlov/${bk.o}/${c+1}.m4a`;
 }
+/* Every load/stop bumps audioGen so callbacks queued for an older file never fire */
+let audioGen = 0, pendingVerse = -1, startPending = false;
+function whenAudioReady(fn){
+  const g = audioGen;
+  const run = () => { if (g === audioGen) fn(); };
+  if (audio.readyState >= 1) run();
+  else audio.addEventListener('loadedmetadata', run, { once: true });
+}
+/* Kozlov start time (s) of a verse, or null when there is no matching timing */
+function verseStartSec(b, c, verseIdx){
+  if (S.reader !== 'kozlov') return null;
+  const st = TIMES[book(b).o + '.' + (c + 1)];
+  if (!st || st.length !== book(b).c[c].length || verseIdx < 0 || verseIdx >= st.length) return null;
+  return st[verseIdx] / 1000;
+}
+/* Single entry point to start or move playback: chapter b:c at verse verseIdx.
+   Reuses the loaded file when it is already this reader + chapter. Returns true when
+   the seek lands exactly on the verse (Kozlov with timings). */
+function playAt(b, c, verseIdx, opts){
+  opts = opts || {};
+  const exactSec = opts.fromStart ? null : verseStartSec(b, c, verseIdx);
+  const seekSec = exactSec != null ? exactSec : 0;
+  let note = '';
+  if (opts.note) {
+    if (S.reader === 'kozlov' && exactSec == null) note = 'Нет тайминга — с начала главы';
+    else if (S.reader !== 'kozlov' && verseIdx > 0) note = 'С начала главы';
+  }
+  if (audioKey !== S.reader + ':' + b + ':' + c || !audio.src) loadAudio(b, c);
+  pendingVerse = -1;
+  startPending = true;
+  lastFollowVerse = Math.max(0, verseIdx|0);
+  showPlayerChrome();
+  whenAudioReady(() => {
+    const g = audioGen;
+    let started = false;
+    const start = () => {
+      if (started || g !== audioGen) return;
+      started = true;
+      startPending = false;
+      audio.play().catch(()=>{});
+      if (note) showToast(note, 2200);
+      if (exactSec != null && S.follow) highlight({ force: true, time: seekSec, scroll: !!opts.scroll, instant: true });
+      bumpActivity();
+      syncAudioBtn();
+      updateAudioRefChip();
+    };
+    if (Math.abs((audio.currentTime || 0) - seekSec) > 0.35) {
+      const onSeek = () => { audio.removeEventListener('seeked', onSeek); start(); };
+      audio.addEventListener('seeked', onSeek);
+      try { audio.currentTime = seekSec; } catch(e){ start(); }
+      setTimeout(() => { audio.removeEventListener('seeked', onSeek); start(); }, 400);
+    } else start();
+  });
+  return exactSec != null;
+}
 function loadAudio(b, c){
-  if (b == null || c == null) { const s = slot(); b = s.b; c = s.c; }
+  audioGen++;
+  pendingVerse = -1;
+  startPending = false;
   audioBook = b; audioChap = c;
   audioKey = S.reader + ':' + b + ':' + c;
   audio.src = audioURL(b, c);
@@ -854,55 +929,51 @@ function loadAudio(b, c){
   clearHL();
   updateAudioRefChip();
 }
+/* Pause, also cancelling a start that is still loading */
+function pauseAudio(){
+  if (startPending) { audioGen++; startPending = false; }
+  if (!audio.paused) audio.pause();
+  else { hidePlayerChrome(); syncAudioBtn(); }
+}
 function stopAudio(){
-  stoppingAudio = true;
+  audioGen++; /* cancel any queued start */
+  pendingVerse = -1;
+  startPending = false;
   try { audio.pause(); } catch(e){}
   clearHL();
   audioBook = -1; audioChap = -1; audioKey = '';
   hidePlayerChrome();
   updateAudioRefChip();
   syncAudioBtn();
-  stoppingAudio = false;
 }
 $('#audioBtn').onclick = () => {
   closePop();
-  /* Playing + selected verse → jump. Playing + none → pause (chrome collapses). */
-  if (!audio.paused) {
+  /* Playing + selected verse → jump there. Playing + none → pause (chrome collapses). */
+  if (isAudioPlaying()) {
     if (selectedVerse >= 0) { playFromVerse(selectedVerse); return; }
-    audio.pause();
+    pauseAudio();
     return;
   }
-  if (selectedVerse >= 0) {
-    playFromVerse(selectedVerse);
-    return;
-  }
-  /* Paused session → resume (player chrome returns on play) */
+  if (selectedVerse >= 0) { playFromVerse(selectedVerse); return; }
   if (hasAudioSession()) {
+    /* Reader was switched while paused → resume that verse in the new voice */
+    if (pendingVerse >= 0) { playAt(audioBook, audioChap, pendingVerse, { scroll: true }); return; }
     showPlayerChrome();
     audio.play().catch(()=>{});
     bumpActivity();
     syncAudioBtn();
     return;
   }
-  /* Fresh start: viewed chapter from beginning */
-  showPlayerChrome();
+  /* Fresh start: viewed chapter from the beginning */
+  clearHL();
   const {b, c} = slot();
-  loadAudio(b, c);
-  const start = () => {
-    try { audio.currentTime = 0; } catch(e){}
-    clearHL(); hlIdx = -1; lastFollowVerse = 0;
-    audio.play().catch(()=>{});
-    bumpActivity();
-    syncAudioBtn();
-  };
-  if (audio.readyState >= 1) start();
-  else audio.addEventListener('loadedmetadata', start, {once:true});
+  playAt(b, c, 0, { fromStart: true });
 };
 $('#pStop').onclick = stopAudio;
 if ($('#pRef')) $('#pRef').onclick = e => { e.stopPropagation(); jumpToAudioChapter(); };
 $('#pBack').onclick = () => { audio.currentTime = Math.max(0, audio.currentTime - 15); highlight({ force: true, scroll: true, instant: true }); };
 let sleepMode = 0, sleepT = null;
-function setSleep(m){ sleepMode = m; clearTimeout(sleepT); if (m > 0) sleepT = setTimeout(() => { audio.pause(); sleepMode = 0; applyPrefs(); }, m * 60000); applyPrefs(); }
+function setSleep(m){ sleepMode = m; clearTimeout(sleepT); if (m > 0) sleepT = setTimeout(() => { pauseAudio(); sleepMode = 0; applyPrefs(); }, m * 60000); applyPrefs(); }
 document.querySelectorAll('#sleepSeg button').forEach(b => b.onclick = () => setSleep(+b.dataset.s));
 document.querySelectorAll('#rateSeg button').forEach(b => b.onclick = () => { S.rate = snapRate(b.dataset.r); audio.defaultPlaybackRate = audio.playbackRate = S.rate; try { audio.preservesPitch = true; audio.mozPreservesPitch = true; audio.webkitPreservesPitch = true; } catch(e){} save(); applyPrefs(); });
 $('#contChk').onchange = e => { S.cont = e.target.checked; save(); };
@@ -947,11 +1018,16 @@ audio.onplay = () => {
   syncAudioBtn();
 };
 audio.onpause = () => {
-  if (!stoppingAudio) hidePlayerChrome();
+  hidePlayerChrome();
   syncAudioBtn();
   postHaPosition(true);
 };
-audio.onerror = () => { $('#pTime').textContent = t('noaudio'); };
+audio.onerror = () => {
+  if (!audio.getAttribute('src')) return;
+  /* File missing / offline: say so and reset, so the next ▶ tries again */
+  showToast(t('noaudio'), 2600);
+  stopAudio();
+};
 const fmt = t => isFinite(t) ? Math.floor(t/60) + ':' + String(Math.floor(t%60)).padStart(2,'0') : '0:00';
 let seeking = false;
 $('#pSeek').oninput = e => {
@@ -974,37 +1050,23 @@ audio.ontimeupdate = () => {
   if (!seeking && audio.duration) $('#pSeek').value = Math.round(audio.currentTime / audio.duration * 1000);
   $('#pTime').textContent = fmt(audio.currentTime);
   syncSeekFill();
-  highlight();
+  if (!seeking) highlight();
 };
-let audioEnding = false;
+/* Auto-next: audio moves to the next chapter; the view follows only when you were
+   looking at the chapter that was playing. */
 audio.onended = () => {
-  if (audioEnding) return;
   if (sleepMode === -1) { setSleep(0); syncAudioBtn(); return; }
-  if (!S.cont) { syncAudioBtn(); return; }
   const b = audioBook, c = audioChap;
-  if (b < 0) { syncAudioBtn(); return; }
-  const viewFollows = viewMatchesAudio();
+  if (!S.cont || b < 0) { syncAudioBtn(); return; }
   let nb = b, nc = c;
   if (c < book(b).c.length - 1) nc = c + 1;
   else if (b < 65) { nb = b + 1; nc = 0; }
   else { syncAudioBtn(); return; }
-  audioEnding = true;
-  showPlayerChrome();
-  loadAudio(nb, nc);
-  const start = () => {
-    audioEnding = false;
-    audio.play().catch(()=>{});
-    syncAudioBtn();
-    updateAudioRefChip();
-    bumpActivity();
-  };
-  if (audio.readyState >= 1) start();
-  else audio.addEventListener('loadedmetadata', start, { once: true });
+  const viewFollows = viewMatchesAudio();
+  playAt(nb, nc, 0, { fromStart: true });
   if (viewFollows) {
     const s = slot(); s.b = nb; s.c = nc; s.y = 0; s.vi = 0; s.vo = 0; bumpSyncAt(); save();
     render(false);
-  } else {
-    updateAudioRefChip();
   }
 };
 let hlIdx = -1, hlSeekT = 0, lastFollowVerse = 0;
@@ -1045,7 +1107,7 @@ function highlight(opts){
   if (selectedVerse >= 0 && selectedVerse !== i && !opts.force) return;
   const r = $('#reader'), pad = stickyHdrOffset();
   const top = Math.max(0, p.offsetTop - pad - r.clientHeight / 3);
-  if (Math.abs(r.scrollTop - top) > r.clientHeight / 3) r.scrollTo({top, behavior: opts.instant ? 'auto' : 'smooth'});
+  if (Math.abs(r.scrollTop - top) > r.clientHeight / 3) readerScrollTo(top, !opts.instant);
 }
 function highlightFromSeek(sec){
   if (!S.follow || S.reader !== 'kozlov') return;
@@ -1069,8 +1131,8 @@ function applyVoiceCmd(cmd){
   }
   if (cmd.action === 'next') { nextChapter(); showToast('→'); return; }
   if (cmd.action === 'prev') { prevChapter(); showToast('←'); return; }
-  if (cmd.action === 'play') { if ($('#player').hidden || audio.paused) $('#audioBtn').click(); showToast('▶'); return; }
-  if (cmd.action === 'stop') { if (!audio.paused) audio.pause(); else stopAudio(); showToast('■'); return; }
+  if (cmd.action === 'play') { if (!isAudioPlaying()) $('#audioBtn').click(); showToast('▶'); return; }
+  if (cmd.action === 'stop') { if (isAudioPlaying()) pauseAudio(); else stopAudio(); showToast('■'); return; }
   if (cmd.action === 'books') { openBooks(); showToast('Книги'); return; }
   if (cmd.action === 'go') {
     const b = cmd.book, c = Math.max(0, (cmd.chapter|0) - 1);
@@ -1137,7 +1199,9 @@ function buildDeepIndex(){
   });
 }
 function parseHash(h){
-  h = String(h || '').replace(/^#/, '').trim();
+  h = String(h || '').replace(/^#/, '');
+  try { h = decodeURIComponent(h); } catch(e){ return null; }
+  h = h.trim();
   if (!h) return null;
   const m = h.match(/^([A-Za-zА-Яа-яЁё0-9\-]+)(?:[./:](\d+))?(?:[./:](\d+))?$/u);
   if (!m) return null;
@@ -1156,14 +1220,17 @@ function parseHash(h){
   const v = m[3] ? +m[3] : null;
   return { b: bi, c, v };
 }
+function validLoc(loc){
+  return !!(loc && Number.isInteger(loc.b) && loc.b >= 0 && loc.b <= 65 &&
+    Number.isInteger(loc.c) && loc.c >= 0 && loc.c < book(loc.b).c.length);
+}
 function applyDeepLink(opts){
   if (!BIBLE) return false;
   buildDeepIndex();
   const loc = parseHash(location.hash);
-  if (!loc) return false;
-  if (loc.b < 0 || loc.b > 65) return false;
-  if (loc.c < 0 || loc.c >= book(loc.b).c.length) return false;
-  const s = slot(); s.b = loc.b; s.c = loc.c; s.y = 0; s.vi = Math.max(0, (loc.v|0) - 1); s.vo = 0; bumpSyncAt(); save();
+  if (!validLoc(loc)) return false;
+  if (loc.v != null && !(loc.v >= 1 && loc.v <= book(loc.b).c[loc.c].length)) loc.v = null;
+  const s = slot(); s.b = loc.b; s.c = loc.c; s.y = 0; s.vi = 0; s.vo = 0; bumpSyncAt(); save();
   render(false);
   if (loc.v) {
     requestAnimationFrame(() => {
@@ -1172,10 +1239,7 @@ function applyDeepLink(opts){
     });
   }
   if (opts && opts.play) {
-    setTimeout(() => {
-      showPlayerChrome();
-      loadAudio(); audio.play().catch(()=>{});
-    }, 300);
+    setTimeout(() => playAt(loc.b, loc.c, loc.v ? loc.v - 1 : 0, { fromStart: !loc.v, scroll: true }), 300);
   }
   return true;
 }
@@ -1227,18 +1291,23 @@ function bumpActivity(){
     releaseWakeLock();
   }, 10 * 60 * 1000);
 }
-async function requestWakeLock(){
-  try {
-    if (!('wakeLock' in navigator)) return;
-    if (document.hidden) return;
-    if (wakeLock) return;
-    wakeLock = await navigator.wakeLock.request('screen');
-    wakeLock.addEventListener('release', () => { wakeLock = null; });
-  } catch(e) { wakeLock = null; }
+/* One lock at a time: scroll events call this many times per second, so a request
+   already in flight must not start another (extra locks would never be released). */
+let wakeLockReq = null, wakeLockWanted = false;
+function requestWakeLock(){
+  wakeLockWanted = true;
+  if (wakeLock || wakeLockReq || document.hidden || !('wakeLock' in navigator)) return;
+  wakeLockReq = navigator.wakeLock.request('screen').then(lock => {
+    wakeLockReq = null;
+    if (!wakeLockWanted || document.hidden) { lock.release().catch(()=>{}); return; }
+    wakeLock = lock;
+    lock.addEventListener('release', () => { if (wakeLock === lock) wakeLock = null; });
+  }, () => { wakeLockReq = null; });
 }
 function releaseWakeLock(){
-  try { if (wakeLock) wakeLock.release(); } catch(e){}
-  wakeLock = null;
+  wakeLockWanted = false;
+  const l = wakeLock; wakeLock = null;
+  try { if (l) l.release().catch(()=>{}); } catch(e){}
 }
 document.addEventListener('pointerdown', bumpActivity, {passive:true});
 document.addEventListener('keydown', bumpActivity);
@@ -1348,13 +1417,11 @@ if (window.RBSync) {
     }),
     applyRemote: (remote) => {
       if (!remote || !Array.isArray(remote.slots) || remote.slots.length !== 3) return;
-      S.slots = remote.slots.map(x => ({
-        b: x.b|0, c: x.c|0, y: x.y|0, vi: x.vi|0, vo: x.vo|0
-      }));
-      S.active = Math.max(0, Math.min(2, remote.active|0));
-      S.syncAt = remote.updatedAt|0;
+      S.slots = DEF.slots.map((d, i) => cleanSlot(remote.slots[i], d));
+      S.active = Math.max(0, Math.min(2, Math.floor(+remote.active) || 0));
+      S.syncAt = +remote.updatedAt > 0 ? +remote.updatedAt : Date.now(); /* ms > 2^31: no |0 */
+      if (BIBLE) { clampSlotsToBible(); renderedKey = ''; render(true); }
       save(); /* schedulePush no-ops while applying via RBSync flag */
-      if (BIBLE) render(true);
     },
     onStatus: () => syncDriveUi()
   });
@@ -1368,6 +1435,7 @@ layoutAudioBtn();
 bumpActivity();
 fetch('data/bible.json').then(r => r.json()).then(d => {
   BIBLE = d;
+  clampSlotsToBible();
   const played = applyDeepLink({ play: readPlayFlag() });
   if (!played) render(true);
   deepReady = true;
