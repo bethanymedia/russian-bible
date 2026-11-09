@@ -137,7 +137,7 @@ let selectedVerse = -1, suppressVerseTapUntil = 0;
 function clearVerseSelection(){
   document.querySelectorAll('#text p.sel').forEach(el => el.classList.remove('sel'));
   selectedVerse = -1;
-  hideVersePlayBubble();
+  syncVerseInlinePlay();
   syncAudioBtn();
 }
 function selectVerse(p, i){
@@ -145,10 +145,25 @@ function selectVerse(p, i){
   clearVerseSelection();
   selectedVerse = i;
   p.classList.add('sel');
+  syncVerseInlinePlay();
   syncAudioBtn();
 }
+function isAudioPlaying(){ return !audio.paused; }
+function hasAudioSession(){ return audioBook >= 0 && !!(audio && audio.src); }
+function showPlayerChrome(){
+  $('#player').hidden = false;
+  document.body.classList.add('playing');
+  updateAudioRefChip();
+  scheduleLayoutAudioBtn();
+}
+function hidePlayerChrome(){
+  $('#player').hidden = true;
+  document.body.classList.remove('playing');
+  scheduleLayoutAudioBtn();
+}
+let stoppingAudio = false;
 function syncAudioBtn(){
-  const playing = !$('#player').hidden && !audio.paused;
+  const playing = isAudioPlaying();
   if (playing && selectedVerse >= 0) {
     $('#audioBtn').textContent = '▶';
     $('#audioBtn').classList.add('jump');
@@ -162,6 +177,8 @@ function syncAudioBtn(){
     $('#audioBtn').classList.remove('jump');
     $('#audioBtn').setAttribute('aria-label', 'Слушать');
   }
+  syncVerseInlinePlay();
+  layoutAudioBtn();
 }
 function onVerseTap(p, i){
   if (Date.now() < suppressVerseTapUntil) return;
@@ -238,6 +255,7 @@ function renderBar(){
   const atEnd = b === 65 && c === book(65).c.length - 1;
   $('#prevCh').disabled = atStart;
   $('#nextCh').disabled = atEnd;
+  scheduleLayoutAudioBtn();
 }
 
 let chNavLock = 0;
@@ -370,7 +388,7 @@ document.addEventListener('click', e => {
   if (selectedVerse < 0) return;
   const p = e.target.closest && e.target.closest('#text p');
   if (p) return; /* verse handler manages toggle */
-  if (e.target.closest && (e.target.closest('#bar') || e.target.closest('#pop') || e.target.closest('#sheet') || e.target.closest('.versePlay'))) return;
+  if (e.target.closest && (e.target.closest('#bar') || e.target.closest('#pop') || e.target.closest('#sheet') || e.target.closest('.versePlay') || e.target.closest('.verseInlinePlay'))) return;
   clearVerseSelection();
 });
 document.querySelectorAll('#langSeg button').forEach(b => b.onclick = () => { S.lang = b.dataset.l; save(); applyPrefs(); if (BIBLE) render(true); });
@@ -382,8 +400,8 @@ document.querySelectorAll('#themeSeg button').forEach(b => b.onclick = () => { S
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyPrefs);
 function switchReader(next){
   if (!next || next === S.reader) return;
-  const wasPlaying = !$('#player').hidden && !audio.paused;
-  const playerOpen = !$('#player').hidden;
+  const wasPlaying = !audio.paused;
+  const playerOpen = hasAudioSession() || !$('#player').hidden;
   const b = audioBook >= 0 ? audioBook : slot().b;
   const c = audioChap >= 0 ? audioChap : slot().c;
   let verseIdx = selectedVerse >= 0 && viewMatchesAudio() ? selectedVerse
@@ -395,8 +413,7 @@ function switchReader(next){
   save();
   applyPrefs();
   if (!playerOpen && !wasPlaying) return;
-  $('#player').hidden = false;
-  document.body.classList.add('playing');
+  showPlayerChrome();
   loadAudio(b, c);
   const start = () => {
     let seek = 0;
@@ -548,35 +565,25 @@ function openSimfonia(word, query){
 }
 
 
-/* Play from verse: tap verse → select + ▶ bubble */
-let versePlayBubble = null;
-function hideVersePlayBubble(){
-  if (versePlayBubble) { versePlayBubble.remove(); versePlayBubble = null; }
-}
-function showVersePlayBubble(anchor, verseIdx){
-  hideVersePlayBubble();
+/* Inline ▶ on selected verse when audio is not playing */
+function hideVersePlayBubble(){ syncVerseInlinePlay(true); }
+function syncVerseInlinePlay(forceHide){
+  document.querySelectorAll('.verseInlinePlay').forEach(el => el.remove());
+  if (forceHide) return;
+  if (selectedVerse < 0) return;
+  if (isAudioPlaying()) return;
+  const p = $('#v' + (selectedVerse + 1));
+  if (!p) return;
   const b = document.createElement('button');
   b.type = 'button';
-  b.className = 'versePlay';
-  b.setAttribute('aria-label', 'Play from verse');
+  b.className = 'verseInlinePlay';
+  b.setAttribute('aria-label', 'С этой стиха');
   b.textContent = '▶';
-  const r = anchor.getBoundingClientRect();
-  b.style.left = Math.max(8, r.left + r.width / 2 - 22) + 'px';
-  b.style.top = Math.max(8, r.top - 44) + 'px';
   b.onclick = e => {
     e.stopPropagation();
-    hideVersePlayBubble();
-    playFromVerse(verseIdx);
+    playFromVerse(selectedVerse);
   };
-  document.body.appendChild(b);
-  versePlayBubble = b;
-  setTimeout(() => {
-    const once = ev => {
-      if (versePlayBubble && !versePlayBubble.contains(ev.target)) hideVersePlayBubble();
-      document.removeEventListener('pointerdown', once, true);
-    };
-    document.addEventListener('pointerdown', once, true);
-  }, 0);
+  p.appendChild(b);
 }
 function playFromVerse(verseIdx){
   const {b, c} = slot();
@@ -594,11 +601,9 @@ function playFromVerse(verseIdx){
   }
   const sameChapter = audioBook === b && audioChap === c && audioKey === S.reader + ':' + b + ':' + c;
   const alreadyOpen = !$('#player').hidden;
-  $('#player').hidden = false;
-  document.body.classList.add('playing');
+  showPlayerChrome();
   const startAt = () => {
     const apply = () => {
-      try { audio.currentTime = seekSec; } catch(e){}
       clearVerseSelection();
       lastFollowVerse = verseIdx;
       hlIdx = -1;
@@ -610,11 +615,22 @@ function playFromVerse(verseIdx){
         const r = $('#reader'), top = p.offsetTop - r.clientHeight / 3;
         r.scrollTo({top, behavior: 'smooth'});
       }
-      audio.play().catch(()=>{});
-      if (note) showToast(note, 2200);
-      bumpActivity();
-      syncAudioBtn();
-      updateAudioRefChip();
+      let started = false;
+      const go = () => {
+        if (started) return; started = true;
+        audio.play().catch(()=>{});
+        if (note) showToast(note, 2200);
+        bumpActivity();
+        syncAudioBtn();
+        updateAudioRefChip();
+      };
+      try { audio.currentTime = seekSec; } catch(e){}
+      if (Math.abs((audio.currentTime || 0) - seekSec) > 0.35) {
+        const onSeek = () => { audio.removeEventListener('seeked', onSeek); go(); };
+        audio.addEventListener('seeked', onSeek);
+        try { audio.currentTime = seekSec; } catch(e){ go(); }
+        setTimeout(() => { audio.removeEventListener('seeked', onSeek); go(); }, 400);
+      } else go();
     };
     if (audio.readyState >= 1) apply();
     else audio.addEventListener('loadedmetadata', apply, {once: true});
@@ -626,6 +642,64 @@ function playFromVerse(verseIdx){
     startAt();
   }
 }
+
+
+/* Center ▶ halfway between ☰ and ‹ (prevCh); pad player so it doesn't overlap */
+
+function syncSeekFill(){
+  const el = $('#pSeek');
+  if (!el) return;
+  const max = +el.max || 1000;
+  const pct = max ? (100 * (+el.value || 0) / max) : 0;
+  el.style.setProperty('--seek-pct', pct + '%');
+}
+function layoutAudioBtn(){
+  const bar = $('#bar'), btn = $('#audioBtn'), menu = $('#menuBtn'), prev = $('#prevCh');
+  if (!bar || !btn || !menu || !prev) return;
+  const br = bar.getBoundingClientRect();
+  const mr = menu.getBoundingClientRect();
+  const pr = prev.getBoundingClientRect();
+  const gap = pr.left - mr.right;
+  /* Shrink ▶ when the ☰…‹ gap is too tight (narrow phones) */
+  const ideal = 44;
+  if (gap < ideal + 10) {
+    const size = Math.max(28, Math.floor(gap - 8));
+    btn.style.minWidth = size + 'px';
+    btn.style.paddingLeft = '2px';
+    btn.style.paddingRight = '2px';
+    btn.style.fontSize = Math.max(16, Math.round(size * 0.62)) + 'px';
+  } else {
+    btn.style.minWidth = '';
+    btn.style.paddingLeft = '';
+    btn.style.paddingRight = '';
+    btn.style.fontSize = '';
+  }
+  const btnW = btn.offsetWidth || 44;
+  const half = btnW / 2 + 2;
+  const mid = (mr.left + mr.width / 2 + pr.left + pr.width / 2) / 2;
+  const lo = mr.right + half;
+  const hi = pr.left - half;
+  const clamped = hi >= lo ? Math.min(hi, Math.max(lo, mid)) : (mr.right + pr.left) / 2;
+  const x = clamped - br.left;
+  bar.style.setProperty('--audio-x', x + 'px');
+  const leftMain = $('#leftMain');
+  if (leftMain) {
+    if ($('#player').hidden) {
+      bar.style.setProperty('--audio-pad', '0px');
+    } else {
+      const lm = leftMain.getBoundingClientRect();
+      const pad = Math.max(0, (br.left + x + half + 2) - lm.left);
+      bar.style.setProperty('--audio-pad', pad + 'px');
+    }
+  }
+}
+let layoutAudioT = 0;
+function scheduleLayoutAudioBtn(){
+  clearTimeout(layoutAudioT);
+  layoutAudioT = setTimeout(layoutAudioBtn, 30);
+}
+window.addEventListener('resize', scheduleLayoutAudioBtn);
+window.addEventListener('orientationchange', () => setTimeout(layoutAudioBtn, 120));
 
 /* Audio — session (audioBook/audioChap) is independent of the viewed slot */
 const audio = $('#audio');
@@ -681,20 +755,19 @@ function loadAudio(b, c){
   updateAudioRefChip();
 }
 function stopAudio(){
-  audio.pause();
-  $('#audioBtn').textContent = '▶';
-  document.body.classList.remove('playing');
-  $('#player').hidden = true;
+  stoppingAudio = true;
+  try { audio.pause(); } catch(e){}
   clearHL();
   audioBook = -1; audioChap = -1; audioKey = '';
+  hidePlayerChrome();
   updateAudioRefChip();
   syncAudioBtn();
+  stoppingAudio = false;
 }
 $('#audioBtn').onclick = () => {
   closePop();
-  const playing = !$('#player').hidden && !audio.paused;
-  /* Playing + selected verse in viewed chapter → switch to that. Else pause. */
-  if (playing) {
+  /* Playing + selected verse → jump. Playing + none → pause (chrome collapses). */
+  if (!audio.paused) {
     if (selectedVerse >= 0) { playFromVerse(selectedVerse); return; }
     audio.pause();
     return;
@@ -703,16 +776,16 @@ $('#audioBtn').onclick = () => {
     playFromVerse(selectedVerse);
     return;
   }
-  /* Paused with open player → resume audio chapter (even if view differs) */
-  if (!$('#player').hidden && audioBook >= 0 && audio.src) {
+  /* Paused session → resume (player chrome returns on play) */
+  if (hasAudioSession()) {
+    showPlayerChrome();
     audio.play().catch(()=>{});
     bumpActivity();
     syncAudioBtn();
-    updateAudioRefChip();
     return;
   }
   /* Fresh start: viewed chapter from beginning */
-  $('#player').hidden = false; document.body.classList.add('playing');
+  showPlayerChrome();
   const {b, c} = slot();
   loadAudio(b, c);
   const start = () => {
@@ -721,7 +794,6 @@ $('#audioBtn').onclick = () => {
     audio.play().catch(()=>{});
     bumpActivity();
     syncAudioBtn();
-    updateAudioRefChip();
   };
   if (audio.readyState >= 1) start();
   else audio.addEventListener('loadedmetadata', start, {once:true});
@@ -739,13 +811,24 @@ if ($('#advChk')) $('#advChk').onchange = e => { S.adv = !!e.target.checked; sav
 if ($('#haWebhook')) $('#haWebhook').onchange = e => { S.haWebhook = String(e.target.value || '').trim(); save(); };
 if ($('#haWebhook')) $('#haWebhook').onkeydown = e => { if (e.key === 'Enter') { e.target.blur(); } };
 
-audio.onplay = () => { try { audio.preservesPitch = true; audio.mozPreservesPitch = true; audio.webkitPreservesPitch = true; } catch(e){} audio.playbackRate = S.rate; bumpActivity(); syncAudioBtn(); };
-audio.onpause = () => { syncAudioBtn(); postHaPosition(true); };
+audio.onplay = () => {
+  try { audio.preservesPitch = true; audio.mozPreservesPitch = true; audio.webkitPreservesPitch = true; } catch(e){}
+  audio.playbackRate = S.rate;
+  showPlayerChrome();
+  bumpActivity();
+  syncAudioBtn();
+};
+audio.onpause = () => {
+  if (!stoppingAudio) hidePlayerChrome();
+  syncAudioBtn();
+  postHaPosition(true);
+};
 audio.onerror = () => { $('#pTime').textContent = t('noaudio'); };
 const fmt = t => isFinite(t) ? Math.floor(t/60) + ':' + String(Math.floor(t%60)).padStart(2,'0') : '0:00';
 let seeking = false;
 $('#pSeek').oninput = e => {
   seeking = true;
+  syncSeekFill();
   if (!audio.duration) return;
   const sec = e.target.value / 1000 * audio.duration;
   $('#pTime').textContent = fmt(sec) + ' / ' + fmt(audio.duration);
@@ -762,6 +845,7 @@ $('#pSeek').onchange = e => {
 audio.ontimeupdate = () => {
   if (!seeking && audio.duration) $('#pSeek').value = Math.round(audio.currentTime / audio.duration * 1000);
   $('#pTime').textContent = fmt(audio.currentTime) + ' / ' + fmt(audio.duration);
+  syncSeekFill();
   highlight();
 };
 let audioEnding = false;
@@ -777,8 +861,7 @@ audio.onended = () => {
   else if (b < 65) { nb = b + 1; nc = 0; }
   else { syncAudioBtn(); return; }
   audioEnding = true;
-  $('#player').hidden = false;
-  document.body.classList.add('playing');
+  showPlayerChrome();
   loadAudio(nb, nc);
   const start = () => {
     audioEnding = false;
@@ -961,7 +1044,7 @@ function applyDeepLink(opts){
   }
   if (opts && opts.play) {
     setTimeout(() => {
-      $('#player').hidden = false; document.body.classList.add('playing');
+      showPlayerChrome();
       loadAudio(); audio.play().catch(()=>{});
     }, 300);
   }
@@ -1126,6 +1209,7 @@ startHaTicker();
 /* Start */
 applyPrefs();
 initVoiceUi();
+layoutAudioBtn();
 bumpActivity();
 fetch('data/bible.json').then(r => r.json()).then(d => {
   BIBLE = d;
