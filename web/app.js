@@ -100,7 +100,8 @@ function syncModeButtons(){
   document.querySelectorAll('.modeBtn').forEach(btn => {
     const on = S.mode === btn.dataset.mode;
     btn.classList.toggle('on', on);
-    btn.textContent = on ? btn.dataset.full : btn.dataset.short;
+    /* Always full words; active state is color/outline only */
+    if (btn.dataset.full) btn.textContent = btn.dataset.full;
   });
   S.trAll = S.mode === 'en';
 }
@@ -260,7 +261,18 @@ function go(b, c){
   bumpActivity();
   postHaPosition(true);
 }
-function switchSlot(i){ if (i === S.active) return; saveScroll(); S.active = i; save(); render(true); bumpActivity(); }
+function switchSlot(i){
+  /* Bottom tabs stay usable under sheet/menu: close overlay, then switch */
+  closeSheet();
+  closePop();
+  clearVerseSelection();
+  if (i === S.active) { bumpActivity(); return; }
+  saveScroll();
+  S.active = i;
+  save();
+  render(true); /* keepScroll → restoreScroll for that tab */
+  bumpActivity();
+}
 
 let scrollT = 0;
 function saveScroll(){
