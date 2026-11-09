@@ -4,10 +4,10 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
-#reader{position:fixed;inset:0 0 calc(64px + env(safe-area-inset-bottom)) 0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(16px + env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) 40px max(14px,env(safe-area-inset-left));outline:none}
-#title{font-family:Georgia,"Times New Roman",serif;font-weight:600;font-size:calc(var(--fs)*1.2);text-align:center;margin:8px auto 20px;max-width:none}
-#text{font-family:Georgia,"Times New Roman",serif;font-size:var(--fs);line-height:1.6;max-width:none;margin:0 auto}
-#text p{margin:0 0 .6em;display:grid;grid-template-columns:1.8em 1fr;column-gap:.4em}
+#reader{position:fixed;inset:0 0 calc(64px + env(safe-area-inset-bottom)) 0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(8px + env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) 40px max(14px,env(safe-area-inset-left));outline:none}
+#title{font:500 15px -apple-system,BlinkMacSystemFont,sans-serif;color:var(--muted);text-align:center;margin:0 0 10px;line-height:30px}
+#text{font-family:Georgia,"Times New Roman",serif;font-size:var(--fs);line-height:1.4;max-width:none;margin:0 auto}
+#text p{margin:0 0 .3em;display:grid;grid-template-columns:1.8em 1fr;column-gap:.4em}
 #text .n{color:var(--num);font-size:.7em;font-family:-apple-system,BlinkMacSystemFont,sans-serif;text-align:right;padding-top:.35em;font-variant-numeric:tabular-nums}
 #text p.hl{background:var(--hl);border-radius:4px}
 #loading{text-align:center;color:var(--muted);margin-top:30vh}
@@ -60,7 +60,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #pop .tog{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px;margin:0 0 12px}
 #pop .tog input{width:20px;height:20px;accent-color:var(--num)}
 #titleRow{position:relative}
-#trBtn{position:absolute;right:0;top:4px;font:600 15px -apple-system,BlinkMacSystemFont,sans-serif;color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:5px 10px}
+#trBtn{position:absolute;right:0;top:0;font:600 15px -apple-system,BlinkMacSystemFont,sans-serif;color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:5px 10px}
 #trBtn.on{color:var(--bg);background:var(--num);border-color:var(--num)}
-#text .tr{grid-column:2;display:block;color:var(--muted);font-size:.82em;line-height:1.45;margin-top:.2em;font-family:-apple-system,BlinkMacSystemFont,sans-serif}
+#text .tr{grid-column:2;display:block;color:var(--muted);font-size:.82em;line-height:1.35;margin-top:.05em;font-family:-apple-system,BlinkMacSystemFont,sans-serif}
 #text p{cursor:pointer;-webkit-tap-highlight-color:transparent}

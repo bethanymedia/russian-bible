@@ -1,7 +1,7 @@
 'use strict';
 const $ = s => document.querySelector(s);
 const KEY = 'rb_state_v1';
-const DEF = { active: 0, slots: [{b:0,c:0,y:0},{b:18,c:22,y:0},{b:42,c:0,y:0}], fs: 20, theme: 'dark', reader: 'kozlov', cont: true, rate: 1, follow: true, lang: 'ru', tr: 'web', trAll: false };
+const DEF = { active: 0, slots: [{b:0,c:0,y:0},{b:18,c:22,y:0},{b:42,c:0,y:0}], fs: 24, theme: 'dark', reader: 'kozlov', cont: true, rate: 1, follow: true, lang: 'ru', tr: 'web', trAll: false };
 let S = load(), BIBLE = null, TIMES = {}, timesOK = false;
 
 function load(){ try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.slots && s.slots.length === 3) return Object.assign({}, DEF, s); } catch(e){} return JSON.parse(JSON.stringify(DEF)); }
@@ -42,7 +42,7 @@ function chapTitle(b, c){ return (b === 18 ? 'Псалом ' : 'Глава ') + 
 function render(keepScroll){
   const {b, c, y} = slot(), bk = book(b), verses = bk.c[c];
   $('#loading').hidden = true;
-  $('#title').innerHTML = `${bk.n}<br><span style="font-weight:400;font-size:.75em;color:var(--muted)">${chapTitle(b,c)}</span>`;
+  $('#title').textContent = bk.n + ' · ' + chapTitle(b, c);
   const frag = document.createDocumentFragment();
   verses.forEach((t, i) => { const p = document.createElement('p'); p.id = 'v' + (i+1); const n = document.createElement('span'); n.className = 'n'; n.textContent = i+1; const v = document.createElement('span'); v.textContent = t; p.append(n, v); p.onclick = () => toggleVerse(p, i); frag.appendChild(p); });
   const tx = $('#text'); tx.innerHTML = ''; tx.appendChild(frag);
