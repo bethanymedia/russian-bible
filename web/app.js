@@ -595,7 +595,7 @@ $('#audioBtn').onclick = () => {
   else audio.addEventListener('loadedmetadata', start, {once:true});
 };
 $('#pStop').onclick = stopAudio;
-$('#pBack').onclick = () => { audio.currentTime = Math.max(0, audio.currentTime - 15); };
+$('#pBack').onclick = () => { audio.currentTime = Math.max(0, audio.currentTime - 15); highlight({ force: true, scroll: true, instant: true }); };
 let sleepMode = 0, sleepT = null;
 function setSleep(m){ sleepMode = m; clearTimeout(sleepT); if (m > 0) sleepT = setTimeout(() => { audio.pause(); sleepMode = 0; applyPrefs(); }, m * 60000); applyPrefs(); }
 document.querySelectorAll('#sleepSeg button').forEach(b => b.onclick = () => setSleep(+b.dataset.s));
@@ -610,8 +610,21 @@ audio.onpause = () => { syncAudioBtn(); postHaPosition(true); };
 audio.onerror = () => { $('#pTime').textContent = t('noaudio'); };
 const fmt = t => isFinite(t) ? Math.floor(t/60) + ':' + String(Math.floor(t%60)).padStart(2,'0') : '0:00';
 let seeking = false;
-$('#pSeek').oninput = () => { seeking = true; };
-$('#pSeek').onchange = e => { if (audio.duration) audio.currentTime = e.target.value / 1000 * audio.duration; seeking = false; };
+$('#pSeek').oninput = e => {
+  seeking = true;
+  if (!audio.duration) return;
+  const sec = e.target.value / 1000 * audio.duration;
+  $('#pTime').textContent = fmt(sec) + ' / ' + fmt(audio.duration);
+  highlightFromSeek(sec);
+};
+$('#pSeek').onchange = e => {
+  if (audio.duration) {
+    const sec = e.target.value / 1000 * audio.duration;
+    audio.currentTime = sec;
+    highlight({ force: true, time: sec, scroll: true, instant: true });
+  }
+  seeking = false;
+};
 audio.ontimeupdate = () => {
   if (!seeking && audio.duration) $('#pSeek').value = Math.round(audio.currentTime / audio.duration * 1000);
   $('#pTime').textContent = fmt(audio.currentTime) + ' / ' + fmt(audio.duration);
@@ -624,24 +637,41 @@ audio.onended = () => {
   if (c < book(b).c.length - 1) { autoNext = true; go(b, c+1); }
   else if (b < 65) { autoNext = true; go(b+1, 0); }
 };
-let hlIdx = -1;
+let hlIdx = -1, hlSeekT = 0;
 function clearHL(){ const p = document.querySelector('#text p.hl'); if (p) p.classList.remove('hl'); hlIdx = -1; }
-function highlight(){
-  if (!S.follow || S.reader !== 'kozlov' || audio.paused) return;
+function verseIndexAtTime(sec){
+  if (S.reader !== 'kozlov') return -1;
   const {b, c} = slot(), k = book(b).o + '.' + (c+1), st = TIMES[k];
-  if (!st || st.length !== book(b).c[c].length) return;
-  const ms = audio.currentTime * 1000; let i = -1;
+  if (!st || st.length !== book(b).c[c].length) return -1;
+  const ms = (sec != null ? sec : audio.currentTime) * 1000;
+  let i = -1;
   for (let j = 0; j < st.length; j++) { if (st[j] <= ms) i = j; else break; }
-  if (i === hlIdx) return;
+  return i;
+}
+/* force: update even while paused (seek / ↺15). scroll: scroll into view. */
+function highlight(opts){
+  opts = opts || {};
+  if (!S.follow || S.reader !== 'kozlov') return;
+  if (audio.paused && !opts.force) return;
+  const i = verseIndexAtTime(opts.time);
+  if (i === hlIdx && !opts.force) return;
   clearHL(); hlIdx = i;
   if (i < 0) return;
   const p = $('#v' + (i+1));
   if (!p) return;
   p.classList.add('hl');
-  /* Don't yank scroll away while user has another verse selected */
-  if (selectedVerse >= 0 && selectedVerse !== i) return;
+  const doScroll = opts.scroll !== false;
+  if (!doScroll) return;
+  if (selectedVerse >= 0 && selectedVerse !== i && !opts.force) return;
   const r = $('#reader'), top = p.offsetTop - r.clientHeight / 3;
-  if (Math.abs(r.scrollTop - top) > r.clientHeight / 3) r.scrollTo({top, behavior:'smooth'});
+  if (Math.abs(r.scrollTop - top) > r.clientHeight / 3) r.scrollTo({top, behavior: opts.instant ? 'auto' : 'smooth'});
+}
+function highlightFromSeek(sec){
+  if (!S.follow || S.reader !== 'kozlov') return;
+  clearTimeout(hlSeekT);
+  hlSeekT = setTimeout(() => {
+    highlight({ force: true, time: sec, scroll: true, instant: true });
+  }, 80);
 }
 
 /* Voice commands (webkitSpeechRecognition) */
