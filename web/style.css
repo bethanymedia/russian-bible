@@ -82,7 +82,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .pk .tst.ot{grid-area:ot}.pk .tst.nt{grid-area:nt}.pk .chc{grid-area:ch}
 .pk .tst .sec{font-size:17px}
 .pk .books{display:grid;gap:min(5px,.6vh)}
-.pk .ot .books{grid-template-columns:repeat(3,1fr)}.pk .nt .books{grid-template-columns:repeat(2,1fr)}
+.pk .books{grid-auto-flow:column;align-content:start}.pk .ot .books{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(13,auto)}.pk .nt .books{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(14,auto)}
 .pk .books button{font-size:clamp(14px,min(2.8vh,1.95vw),30px);padding:.26em .22em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pk .books button.cur{color:var(--c);box-shadow:inset 0 0 0 1.5px var(--c);font-weight:400}
 .pk .chc{border:1px solid var(--line);border-top:4px solid var(--c);border-radius:12px;display:flex;flex-direction:column;min-height:0;min-width:0}
