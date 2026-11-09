@@ -1,7 +1,7 @@
 'use strict';
 const $ = s => document.querySelector(s);
 const KEY = 'rb_state_v1';
-const DEF = { active: 0, slots: [{b:0,c:0,y:0},{b:18,c:22,y:0},{b:42,c:0,y:0}], fs: 20, theme: 'system', reader: 'kozlov' };
+const DEF = { active: 0, slots: [{b:0,c:0,y:0},{b:18,c:22,y:0},{b:42,c:0,y:0}], fs: 20, theme: 'system', reader: 'kozlov', cont: true, rate: 1, follow: true };
 let S = load(), BIBLE = null, TIMES = {}, timesOK = false;
 
 function load(){ try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.slots && s.slots.length === 3) return Object.assign({}, DEF, s); } catch(e){} return JSON.parse(JSON.stringify(DEF)); }
@@ -15,6 +15,9 @@ function applyPrefs(){
   $('#fsRange').value = S.fs;
   document.querySelectorAll('#themeSeg button').forEach(b => b.classList.toggle('on', b.dataset.t === S.theme));
   $('#readerSel').value = S.reader;
+  $('#contChk').checked = S.cont; $('#followChk').checked = S.follow;
+  document.querySelectorAll('#rateSeg button').forEach(b => b.classList.toggle('on', +b.dataset.r === S.rate));
+  document.querySelectorAll('#sleepSeg button').forEach(b => b.classList.toggle('on', +b.dataset.s === sleepMode));
   const dark = S.theme === 'dark' || (S.theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
   document.querySelector('meta[name=theme-color]').content = dark ? '#000000' : '#ffffff';
 }
@@ -124,8 +127,15 @@ $('#audioBtn').onclick = () => {
   if (audioKey !== S.reader + ':' + b + ':' + c) loadAudio();
   audio.play().catch(()=>{});
 };
-$('#pClose').onclick = stopAudio;
-audio.onplay = () => { $('#audioBtn').textContent = '❚❚'; };
+$('#pStop').onclick = stopAudio;
+$('#pBack').onclick = () => { audio.currentTime = Math.max(0, audio.currentTime - 15); };
+let sleepMode = 0, sleepT = null;
+function setSleep(m){ sleepMode = m; clearTimeout(sleepT); if (m > 0) sleepT = setTimeout(() => { audio.pause(); sleepMode = 0; applyPrefs(); }, m * 60000); applyPrefs(); }
+document.querySelectorAll('#sleepSeg button').forEach(b => b.onclick = () => setSleep(+b.dataset.s));
+document.querySelectorAll('#rateSeg button').forEach(b => b.onclick = () => { S.rate = +b.dataset.r; audio.defaultPlaybackRate = audio.playbackRate = S.rate; save(); applyPrefs(); });
+$('#contChk').onchange = e => { S.cont = e.target.checked; save(); };
+$('#followChk').onchange = e => { S.follow = e.target.checked; save(); if (!S.follow) clearHL(); };
+audio.onplay = () => { audio.playbackRate = S.rate; $('#audioBtn').textContent = '❚❚'; };
 audio.onpause = () => { $('#audioBtn').textContent = '▶'; };
 audio.onerror = () => { $('#pTime').textContent = 'нет аудио'; };
 const fmt = t => isFinite(t) ? Math.floor(t/60) + ':' + String(Math.floor(t%60)).padStart(2,'0') : '0:00';
@@ -139,13 +149,15 @@ audio.ontimeupdate = () => {
 };
 audio.onended = () => {
   const {b, c} = slot();
+  if (sleepMode === -1) { setSleep(0); $('#audioBtn').textContent = '▶'; return; }
+  if (!S.cont) return;
   if (c < book(b).c.length - 1) { autoNext = true; go(b, c+1); }
   else if (b < 65) { autoNext = true; go(b+1, 0); }
 };
 let hlIdx = -1;
 function clearHL(){ const p = document.querySelector('#text p.hl'); if (p) p.classList.remove('hl'); hlIdx = -1; }
 function highlight(){
-  if (S.reader !== 'kozlov' || audio.paused) return;
+  if (!S.follow || S.reader !== 'kozlov' || audio.paused) return;
   const {b, c} = slot(), k = book(b).o + '.' + (c+1), st = TIMES[k];
   if (!st || st.length !== book(b).c[c].length) return;
   const ms = audio.currentTime * 1000; let i = -1;

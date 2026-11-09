@@ -28,9 +28,10 @@
   <div id="mid">
     <button id="current"></button>
     <div id="player" hidden>
+      <button id="pBack" aria-label="Назад 15 секунд">↺15</button>
       <input id="pSeek" type="range" min="0" max="1000" value="0" aria-label="Позиция">
       <span id="pTime">0:00</span>
-      <button id="pClose" aria-label="Остановить">✕</button>
+      <button id="pStop" aria-label="Стоп">■</button>
     </div>
   </div>
   <div id="right">
@@ -50,6 +51,12 @@
   <div class="seg" id="themeSeg"><button data-t="light">Светлая</button><button data-t="dark">Тёмная</button><button data-t="system">Авто</button></div>
   <div class="lbl">Чтец (аудио)</div>
   <select id="readerSel"><option value="kozlov">Игорь Козлов</option><option value="efimov">А. Ф. Ефимов</option></select>
+  <div class="lbl">Скорость</div>
+  <div class="seg" id="rateSeg"><button data-r="0.75">0.75×</button><button data-r="1">1×</button><button data-r="1.25">1.25×</button><button data-r="1.5">1.5×</button></div>
+  <div class="lbl">Таймер сна</div>
+  <div class="seg" id="sleepSeg"><button data-s="0">Выкл</button><button data-s="15">15 м</button><button data-s="30">30 м</button><button data-s="60">60 м</button><button data-s="-1">Глава</button></div>
+  <label class="tog"><span>Продолжать со следующей главы</span><input type="checkbox" id="contChk"></label>
+  <label class="tog"><span>Следить за стихом (Козлов)</span><input type="checkbox" id="followChk"></label>
   <button class="link" id="aboutBtn">О приложении</button>
 </div>
 <audio id="audio" preload="none"></audio>

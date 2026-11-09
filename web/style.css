@@ -27,7 +27,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 #player[hidden]{display:none}
 #player input{flex:1;accent-color:var(--accent)}
 #pTime{font-size:13px;color:var(--muted);min-width:84px;text-align:right;font-variant-numeric:tabular-nums}
-#pClose{font-size:14px;color:var(--muted);padding:4px}
+#pStop,#pBack{font-size:14px;color:var(--muted);padding:4px}
 #sheet{position:fixed;inset:0;background:var(--bg);z-index:10;display:flex;flex-direction:column}
 #sheet[hidden]{display:none}
 #sheetHead{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;border-bottom:1px solid var(--line);font-weight:600}
@@ -56,3 +56,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 body.playing #current{font-size:15px;max-width:16vw}
 body.playing #current::after{content:''}
 #grid-fix{}
+#pop{max-height:calc(100vh - 80px);overflow:auto}
+#pop .seg button{padding:7px 4px;font-size:13px}
+#pop .tog{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px;margin:0 0 12px}
+#pop .tog input{width:20px;height:20px;accent-color:var(--num)}
