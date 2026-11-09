@@ -9,7 +9,7 @@ function snapRate(r){
   for (const x of RATES) { const d = Math.abs(r - x); if (d < bd) { best = x; bd = d; } }
   return best;
 }
-const DEF = { active: 0, slots: [{b:0,c:0,y:0,vi:0,vo:0},{b:18,c:21,y:0,vi:0,vo:0},{b:42,c:0,y:0,vi:0,vo:0}], fs: 24, theme: 'dark', reader: 'kozlov', cont: true, rate: 1, follow: true, lang: 'ru', tr: 'web', trAll: false, mode: '', num: 'syn', tabsV: 2, haWebhook: '', adv: false, fsUser: false };
+const DEF = { active: 0, slots: [{b:0,c:0,y:0,vi:0,vo:0},{b:18,c:21,y:0,vi:0,vo:0},{b:42,c:0,y:0,vi:0,vo:0}], fs: 24, theme: 'dark', reader: 'kozlov', cont: true, rate: 1, follow: true, lang: 'ru', tr: 'web', trAll: false, mode: '', num: 'syn', tabsV: 2, haWebhook: '', adv: false, fsUser: false, driveSync: false, syncAt: 0 };
 /* KJV chapter → Synodal chapter for Psalms (1-based). Built from inline markers. */
 const PS_KJV_TO_SYN = {"1":1,"2":2,"3":3,"4":4,"5":5,"6":6,"7":7,"8":8,"9":9,"10":9,"11":10,"12":11,"13":12,"14":13,"15":14,"16":15,"17":16,"18":17,"19":18,"20":19,"21":20,"22":21,"23":22,"24":23,"25":24,"26":25,"27":26,"28":27,"29":28,"30":29,"31":30,"32":31,"33":32,"34":33,"35":34,"36":35,"37":36,"38":37,"39":38,"40":39,"41":40,"42":41,"43":42,"44":43,"45":44,"46":45,"47":46,"48":47,"49":48,"50":49,"51":50,"52":51,"53":52,"54":53,"55":54,"56":55,"57":56,"58":57,"59":58,"60":59,"61":60,"62":61,"63":62,"64":63,"65":64,"66":65,"67":66,"68":67,"69":68,"70":69,"71":70,"72":71,"73":72,"74":73,"75":74,"76":75,"77":76,"78":77,"79":78,"80":79,"81":80,"82":81,"83":82,"84":83,"85":84,"86":85,"87":86,"88":87,"89":88,"90":89,"91":90,"92":91,"93":92,"94":93,"95":94,"96":95,"97":96,"98":97,"99":98,"100":99,"101":100,"102":101,"103":102,"104":103,"105":104,"106":105,"107":106,"108":107,"109":108,"110":109,"111":110,"112":111,"113":112,"114":113,"115":113,"116":114,"117":116,"118":117,"119":118,"120":119,"121":120,"122":121,"123":122,"124":123,"125":124,"126":125,"127":126,"128":127,"129":128,"130":129,"131":130,"132":131,"133":132,"134":133,"135":134,"136":135,"137":136,"138":137,"139":138,"140":139,"141":140,"142":141,"143":142,"144":143,"145":144,"146":145,"147":146,"148":148,"149":149,"150":150};
 
@@ -64,12 +64,16 @@ function load(){
   return d;
 }
 function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+function bumpSyncAt(){
+  S.syncAt = Date.now();
+  try { if (window.RBSync) RBSync.schedulePush(); } catch(e){}
+}
 let S = load(), BIBLE = null, TIMES = {}, COMM = {}, SIMF = null;
 
 const T = {
- ru:{size:'Размер текста',theme:'Тема',light:'Светлая',dark:'Тёмная',auto:'Авто',reader:'Чтец (аудио)',speed:'Скорость',sleep:'Таймер сна',off:'Выкл',m15:'15 м',m30:'30 м',m60:'60 м',chEnd:'Глава',cont:'Продолжать со следующей главы',follow:'Следить за стихом (Козлов)',trl:'Перевод (English)',about:'О приложении',back:'‹ Назад',done:'Готово',books:'Книги',list:'Список книг',noaudio:'нет аудио',voice:'🎤 Голосовая команда',adv:'Дополнительно',readerKozlov:'Козлов',readerEfimov:'Ефимов',
+ ru:{size:'Размер текста',theme:'Тема',light:'Светлая',dark:'Тёмная',auto:'Авто',reader:'Чтец (аудио)',speed:'Скорость',sleep:'Таймер сна',off:'Выкл',m15:'15 м',m30:'30 м',m60:'60 м',chEnd:'Глава',cont:'Продолжать со следующей главы',follow:'Следить за стихом (Козлов)',trl:'Перевод (English)',about:'О приложении',back:'‹ Назад',done:'Готово',books:'Книги',list:'Список книг',noaudio:'нет аудио',voice:'🎤 Голосовая команда',adv:'Дополнительно',sync:'Синхронизация (Google)',syncOn:'Вкл',syncOut:'Выйти',syncOff:'Не настроено',syncSigned:'Вход выполнен',readerKozlov:'Козлов',readerEfimov:'Ефимов',
   credits:'<p><b>Текст:</b> Синодальный перевод (1876), общественное достояние. Источник: The Unbound Bible (Biola University). Нумерация глав и стихов — синодальная.</p><p><b>Аудио:</b> Игорь Козлов, издательство «Благовестник» (распространяется свободно); файлы: Hugging Face, enochlev/russian-synodal-bible-kozlov.</p><p><b>Аудио:</b> А. Ф. Ефимов, «Благовестник»; файлы: The Audio Power (theaudiopower.org).</p><p>Аудио воспроизводится через интернет.</p><p><b>Перевод:</b> World English Bible, общественное достояние (ebible.org). Английский сопоставлен с синодальной нумерацией.</p><p><b>Толкование:</b> Толковая Библия под ред. А. П. Лопухина и преемников (1904–1913), общественное достояние (OCR).</p>'},
- en:{size:'Text size',theme:'Theme',light:'Light',dark:'Dark',auto:'Auto',reader:'Reader (audio)',speed:'Speed',sleep:'Sleep timer',off:'Off',m15:'15 m',m30:'30 m',m60:'60 m',chEnd:'Chapter',cont:'Continue to next chapter',follow:'Follow the verse (Kozlov)',trl:'Translation (English)',about:'About',back:'‹ Back',done:'Done',books:'Books',list:'Book list',noaudio:'no audio',voice:'🎤 Voice command',adv:'Extra options',readerKozlov:'Kozlov',readerEfimov:'Efimov',
+ en:{size:'Text size',theme:'Theme',light:'Light',dark:'Dark',auto:'Auto',reader:'Reader (audio)',speed:'Speed',sleep:'Sleep timer',off:'Off',m15:'15 m',m30:'30 m',m60:'60 m',chEnd:'Chapter',cont:'Continue to next chapter',follow:'Follow the verse (Kozlov)',trl:'Translation (English)',about:'About',back:'‹ Back',done:'Done',books:'Books',list:'Book list',noaudio:'no audio',voice:'🎤 Voice command',adv:'Extra options',sync:'Sync (Google)',syncOn:'On',syncOut:'Sign out',syncOff:'Not configured',syncSigned:'Signed in',readerKozlov:'Kozlov',readerEfimov:'Efimov',
   credits:'<p><b>Text:</b> Russian Synodal Translation (1876), public domain. Source: The Unbound Bible (Biola University). Chapter and verse numbering follows the Synodal (Russian) tradition.</p><p><b>Audio:</b> Igor Kozlov, Blagovestnik publishers (freely distributed); files: Hugging Face, enochlev/russian-synodal-bible-kozlov.</p><p><b>Audio:</b> A. F. Efimov, Blagovestnik; files: The Audio Power (theaudiopower.org).</p><p>Audio streams over the internet.</p><p><b>Translation:</b> World English Bible, public domain (ebible.org), aligned to Synodal numbering.</p><p><b>Commentary:</b> Lopukhin Explanatory Bible (1904–1913), public domain (OCR).</p>'}};
 const t = k => (T[S.lang] || T.ru)[k];
 const TRS = [{id:'web', file:'data/web.json', label:'English (WEB)'}];
@@ -98,6 +102,33 @@ function applyPrefs(){
 }
 
 
+
+function syncDriveUi(){
+  const chk = $('#syncChk');
+  const hint = $('#syncHint');
+  const st = $('#syncStatus');
+  const who = $('#syncWho');
+  if (!chk) return;
+  const cfg = !!(window.RBSync && RBSync.isConfigured());
+  chk.disabled = !cfg;
+  chk.checked = !!(cfg && S.driveSync);
+  if (hint) {
+    if (!cfg) hint.textContent = t('syncOff') || 'Не настроено';
+    else if (!S.driveSync) hint.textContent = '';
+    else {
+      const s = RBSync.status();
+      hint.textContent = s.signedIn ? (t('syncSigned') || 'Вход выполнен') : '';
+    }
+  }
+  if (st) {
+    const show = cfg && S.driveSync;
+    st.hidden = !show;
+    if (who && show) {
+      const s = RBSync.status();
+      who.textContent = s.signedIn ? (t('syncSigned') || 'Вход выполнен') : '';
+    }
+  }
+}
 function syncAdvPanel(){
   const panel = $('#advPanel');
   if (!panel) return;
@@ -110,6 +141,7 @@ function syncAdvPanel(){
   } else if (vbtn) {
     vbtn.hidden = true;
   }
+  syncDriveUi();
 }
 function syncModeButtons(){
   document.querySelectorAll('.modeBtn').forEach(btn => {
@@ -336,7 +368,7 @@ function nextChapter(){
 }
 
 function go(b, c){
-  const s = slot(); s.b = b; s.c = c; s.y = 0; s.vi = 0; s.vo = 0; save();
+  const s = slot(); s.b = b; s.c = c; s.y = 0; s.vi = 0; s.vo = 0; bumpSyncAt(); save();
   closeSheet(); closePop();
   /* View-only navigation — audio keeps its own chapter */
   render(false);
@@ -351,6 +383,7 @@ function switchSlot(i){
   if (i === S.active) { bumpActivity(); return; }
   saveScroll();
   S.active = i;
+  bumpSyncAt();
   save();
   render(true); /* keepScroll → restoreScroll for that tab */
   bumpActivity();
@@ -376,6 +409,7 @@ function saveScroll(){
     vi = i; vo = 0;
   }
   s.vi = vi; s.vo = vo;
+  bumpSyncAt();
   save();
 }
 function restoreScroll(){
@@ -788,7 +822,7 @@ function jumpToAudioChapter(){
   if (audioBook < 0) return;
   const v = Math.max(0, lastFollowVerse);
   const s = slot();
-  s.b = audioBook; s.c = audioChap; s.y = 0; s.vi = v; s.vo = 0; save();
+  s.b = audioBook; s.c = audioChap; s.y = 0; s.vi = v; s.vo = 0; bumpSyncAt(); save();
   closeSheet(); closePop();
   render(false);
   requestAnimationFrame(() => {
@@ -874,6 +908,34 @@ document.querySelectorAll('#rateSeg button').forEach(b => b.onclick = () => { S.
 $('#contChk').onchange = e => { S.cont = e.target.checked; save(); };
 $('#followChk').onchange = e => { S.follow = e.target.checked; save(); if (!S.follow) clearHL(); };
 if ($('#advChk')) $('#advChk').onchange = e => { S.adv = !!e.target.checked; save(); syncAdvPanel(); };
+if ($('#syncChk')) $('#syncChk').onchange = async e => {
+  if (!(window.RBSync && RBSync.isConfigured())) {
+    e.target.checked = false;
+    S.driveSync = false;
+    save();
+    syncDriveUi();
+    return;
+  }
+  if (e.target.checked) {
+    const ok = await RBSync.enable();
+    S.driveSync = !!ok;
+    if (!ok) e.target.checked = false;
+    save();
+    syncDriveUi();
+  } else {
+    RBSync.signOut();
+    S.driveSync = false;
+    save();
+    syncDriveUi();
+  }
+};
+if ($('#syncOutBtn')) $('#syncOutBtn').onclick = () => {
+  if (window.RBSync) RBSync.signOut();
+  S.driveSync = false;
+  if ($('#syncChk')) $('#syncChk').checked = false;
+  save();
+  syncDriveUi();
+};
 if ($('#haWebhook')) $('#haWebhook').onchange = e => { S.haWebhook = String(e.target.value || '').trim(); save(); };
 if ($('#haWebhook')) $('#haWebhook').onkeydown = e => { if (e.key === 'Enter') { e.target.blur(); } };
 
@@ -939,7 +1001,7 @@ audio.onended = () => {
   if (audio.readyState >= 1) start();
   else audio.addEventListener('loadedmetadata', start, { once: true });
   if (viewFollows) {
-    const s = slot(); s.b = nb; s.c = nc; s.y = 0; s.vi = 0; s.vo = 0; save();
+    const s = slot(); s.b = nb; s.c = nc; s.y = 0; s.vi = 0; s.vo = 0; bumpSyncAt(); save();
     render(false);
   } else {
     updateAudioRefChip();
@@ -1101,7 +1163,7 @@ function applyDeepLink(opts){
   if (!loc) return false;
   if (loc.b < 0 || loc.b > 65) return false;
   if (loc.c < 0 || loc.c >= book(loc.b).c.length) return false;
-  const s = slot(); s.b = loc.b; s.c = loc.c; s.y = 0; save();
+  const s = slot(); s.b = loc.b; s.c = loc.c; s.y = 0; s.vi = Math.max(0, (loc.v|0) - 1); s.vo = 0; bumpSyncAt(); save();
   render(false);
   if (loc.v) {
     requestAnimationFrame(() => {
@@ -1272,6 +1334,31 @@ startHaTicker();
     }
   }, { passive: false });
 })();
+
+
+/* Google Drive reading-position sync (optional; inert without GOOGLE_CLIENT_ID) */
+if (window.RBSync) {
+  RBSync.init({
+    isEnabled: () => !!S.driveSync,
+    setEnabled: (on) => { S.driveSync = !!on; save(); },
+    getSnapshot: () => ({
+      updatedAt: S.syncAt || 0,
+      active: S.active|0,
+      slots: JSON.parse(JSON.stringify(S.slots))
+    }),
+    applyRemote: (remote) => {
+      if (!remote || !Array.isArray(remote.slots) || remote.slots.length !== 3) return;
+      S.slots = remote.slots.map(x => ({
+        b: x.b|0, c: x.c|0, y: x.y|0, vi: x.vi|0, vo: x.vo|0
+      }));
+      S.active = Math.max(0, Math.min(2, remote.active|0));
+      S.syncAt = remote.updatedAt|0;
+      save(); /* schedulePush no-ops while applying via RBSync flag */
+      if (BIBLE) render(true);
+    },
+    onStatus: () => syncDriveUi()
+  });
+}
 
 /* Start */
 applyPrefs();

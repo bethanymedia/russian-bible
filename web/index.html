@@ -84,12 +84,20 @@
   <input id="haWebhook" type="url" placeholder="https://…/api/webhook/…" autocomplete="off" spellcheck="false">
   <p class="hint" id="haHint">Пусто = выкл. Нужен HTTPS (Cloudflare Tunnel и т.п.). POST позиции при чтении.</p>
   <button class="link voiceRow" id="voiceBtn" type="button" hidden data-i="voice">🎤 Голосовая команда</button>
+  <div class="lbl" data-i="sync">Синхронизация (Google)</div>
+  <label class="tog"><span data-i="syncOn">Вкл</span><input type="checkbox" id="syncChk"></label>
+  <p class="hint" id="syncHint">Не настроено</p>
+  <div id="syncStatus" hidden>
+    <span id="syncWho" class="hint" style="margin:0"></span>
+    <button class="link" id="syncOutBtn" type="button" data-i="syncOut">Выйти</button>
+  </div>
   </div>
   <button class="link" id="aboutBtn" data-i="about">О приложении</button>
 </div>
 <div id="toast" hidden></div>
 <audio id="audio" preload="none"></audio>
 <script src="voice.js"></script>
+<script src="sync.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
