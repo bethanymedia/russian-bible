@@ -206,7 +206,14 @@ function render(keepScroll){
     restoreScroll();
   });
   if (!keepScroll) { const s = slot(); s.y = 0; s.vi = 0; s.vo = 0; save(); }
-  syncAudioToChapter();
+  /* Navigation never reloads audio — only refresh chrome / follow when view matches */
+  updateAudioRefChip();
+  if (viewMatchesAudio() && !$('#player').hidden && S.follow && S.reader === 'kozlov') {
+    highlight({ force: true, scroll: false });
+  } else {
+    clearHL();
+  }
+  syncAudioBtn();
   bumpActivity();
 }
 
@@ -248,12 +255,12 @@ function nextChapter(){
 function go(b, c){
   const s = slot(); s.b = b; s.c = c; s.y = 0; s.vi = 0; s.vo = 0; save();
   closeSheet(); closePop();
-  /* render → syncAudioToChapter continues only if audio was already playing */
+  /* View-only navigation — audio keeps its own chapter */
   render(false);
   bumpActivity();
   postHaPosition(true);
 }
-function switchSlot(i){ if (i === S.active) return; saveScroll(); S.active = i; save(); stopAudio(); render(true); bumpActivity(); }
+function switchSlot(i){ if (i === S.active) return; saveScroll(); S.active = i; save(); render(true); bumpActivity(); }
 
 let scrollT = 0;
 function saveScroll(){
@@ -356,8 +363,9 @@ function switchReader(next){
   if (!next || next === S.reader) return;
   const wasPlaying = !$('#player').hidden && !audio.paused;
   const playerOpen = !$('#player').hidden;
-  const {b, c} = slot();
-  let verseIdx = selectedVerse >= 0 ? selectedVerse
+  const b = audioBook >= 0 ? audioBook : slot().b;
+  const c = audioChap >= 0 ? audioChap : slot().c;
+  let verseIdx = selectedVerse >= 0 && viewMatchesAudio() ? selectedVerse
     : (hlIdx >= 0 ? hlIdx
     : (verseIndexAtTime() >= 0 ? verseIndexAtTime() : lastFollowVerse));
   if (verseIdx < 0) verseIdx = 0;
@@ -366,10 +374,9 @@ function switchReader(next){
   save();
   applyPrefs();
   if (!playerOpen && !wasPlaying) return;
-  /* Keep player open; load new reader and continue */
   $('#player').hidden = false;
   document.body.classList.add('playing');
-  loadAudio();
+  loadAudio(b, c);
   const start = () => {
     let seek = 0;
     if (S.reader === 'kozlov') {
@@ -378,13 +385,10 @@ function switchReader(next){
         seek = st[verseIdx] / 1000;
     }
     try { audio.currentTime = seek; } catch(e){}
-    const play = () => {
-      if (wasPlaying || playerOpen) audio.play().catch(()=>{});
-      if (S.follow && S.reader === 'kozlov') highlight({ force: true, time: seek, scroll: true, instant: true });
-      syncAudioBtn();
-      bumpActivity();
-    };
-    play();
+    if (wasPlaying || playerOpen) audio.play().catch(()=>{});
+    if (S.follow && S.reader === 'kozlov') highlight({ force: true, time: seek, scroll: true, instant: true });
+    syncAudioBtn();
+    bumpActivity();
   };
   if (audio.readyState >= 1) start();
   else audio.addEventListener('loadedmetadata', start, { once: true });
@@ -565,10 +569,9 @@ function playFromVerse(verseIdx){
   } else if (S.reader === 'kozlov') {
     note = 'Нет тайминга — с начала главы';
   } else {
-    /* Efimov (and others): no per-verse timings */
     if (verseIdx > 0) note = 'С начала главы';
   }
-  const sameChapter = audioKey === S.reader + ':' + b + ':' + c;
+  const sameChapter = audioBook === b && audioChap === c && audioKey === S.reader + ':' + b + ':' + c;
   const alreadyOpen = !$('#player').hidden;
   $('#player').hidden = false;
   document.body.classList.add('playing');
@@ -590,6 +593,7 @@ function playFromVerse(verseIdx){
       if (note) showToast(note, 2200);
       bumpActivity();
       syncAudioBtn();
+      updateAudioRefChip();
     };
     if (audio.readyState >= 1) apply();
     else audio.addEventListener('loadedmetadata', apply, {once: true});
@@ -597,14 +601,47 @@ function playFromVerse(verseIdx){
   if (sameChapter && alreadyOpen && audio.src) {
     startAt();
   } else {
-    loadAudio();
+    loadAudio(b, c);
     startAt();
   }
 }
 
-/* Audio */
+/* Audio — session (audioBook/audioChap) is independent of the viewed slot */
 const audio = $('#audio');
 let audioKey = '';
+let audioBook = -1, audioChap = -1;
+function viewMatchesAudio(){
+  if (audioBook < 0) return false;
+  const {b, c} = slot();
+  return audioBook === b && audioChap === c;
+}
+function updateAudioRefChip(){
+  const el = $('#pRef');
+  if (!el) return;
+  if (audioBook >= 0) el.textContent = book(audioBook).a + ' ' + (audioChap + 1);
+  else el.textContent = '';
+  const show = !$('#player').hidden && audioBook >= 0 && !viewMatchesAudio();
+  el.hidden = !show;
+}
+function jumpToAudioChapter(){
+  if (audioBook < 0) return;
+  const v = Math.max(0, lastFollowVerse);
+  const s = slot();
+  s.b = audioBook; s.c = audioChap; s.y = 0; s.vi = v; s.vo = 0; save();
+  closeSheet(); closePop();
+  render(false);
+  requestAnimationFrame(() => {
+    const p = $('#v' + (v + 1));
+    if (p) {
+      clearHL();
+      p.classList.add('hl');
+      hlIdx = v;
+      p.scrollIntoView({ block: 'center' });
+    }
+    updateAudioRefChip();
+    syncAudioBtn();
+  });
+}
 function audioURL(b, c){
   const bk = book(b);
   if (S.reader === 'efimov') {
@@ -613,22 +650,29 @@ function audioURL(b, c){
   }
   return `https://huggingface.co/datasets/enochlev/russian-synodal-bible-kozlov/resolve/main/a1/kozlov/${bk.o}/${c+1}.m4a`;
 }
-function loadAudio(){ const {b, c} = slot(); audioKey = S.reader + ':' + b + ':' + c; audio.src = audioURL(b, c); audio.load(); clearHL(); }
-function stopAudio(){ audio.pause(); $('#audioBtn').textContent = '▶'; document.body.classList.remove('playing'); $('#player').hidden = true; clearHL(); }
-function syncAudioToChapter(){
-  const {b, c} = slot();
-  if ($('#player').hidden) return;
-  if (audioKey === S.reader + ':' + b + ':' + c) return;
-  const wasPlaying = !audio.paused || autoNext;
-  autoNext = false;
-  loadAudio();
-  if (wasPlaying) audio.play().catch(()=>{});
+function loadAudio(b, c){
+  if (b == null || c == null) { const s = slot(); b = s.b; c = s.c; }
+  audioBook = b; audioChap = c;
+  audioKey = S.reader + ':' + b + ':' + c;
+  audio.src = audioURL(b, c);
+  audio.load();
+  clearHL();
+  updateAudioRefChip();
 }
-let autoNext = false;
+function stopAudio(){
+  audio.pause();
+  $('#audioBtn').textContent = '▶';
+  document.body.classList.remove('playing');
+  $('#player').hidden = true;
+  clearHL();
+  audioBook = -1; audioChap = -1; audioKey = '';
+  updateAudioRefChip();
+  syncAudioBtn();
+}
 $('#audioBtn').onclick = () => {
   closePop();
   const playing = !$('#player').hidden && !audio.paused;
-  /* Playing + selected verse → jump now (no stop). Playing + no selection → pause. */
+  /* Playing + selected verse in viewed chapter → switch to that. Else pause. */
   if (playing) {
     if (selectedVerse >= 0) { playFromVerse(selectedVerse); return; }
     audio.pause();
@@ -638,22 +682,31 @@ $('#audioBtn').onclick = () => {
     playFromVerse(selectedVerse);
     return;
   }
-  /* No selection → from chapter beginning */
-  $('#player').hidden = false; document.body.classList.add('playing');
-  const {b, c} = slot();
-  const needLoad = audioKey !== S.reader + ':' + b + ':' + c;
-  if (needLoad) loadAudio();
-  const start = () => {
-    try { audio.currentTime = 0; } catch(e){}
-    clearHL(); hlIdx = -1;
+  /* Paused with open player → resume audio chapter (even if view differs) */
+  if (!$('#player').hidden && audioBook >= 0 && audio.src) {
     audio.play().catch(()=>{});
     bumpActivity();
     syncAudioBtn();
+    updateAudioRefChip();
+    return;
+  }
+  /* Fresh start: viewed chapter from beginning */
+  $('#player').hidden = false; document.body.classList.add('playing');
+  const {b, c} = slot();
+  loadAudio(b, c);
+  const start = () => {
+    try { audio.currentTime = 0; } catch(e){}
+    clearHL(); hlIdx = -1; lastFollowVerse = 0;
+    audio.play().catch(()=>{});
+    bumpActivity();
+    syncAudioBtn();
+    updateAudioRefChip();
   };
-  if (!needLoad && audio.readyState >= 1) start();
+  if (audio.readyState >= 1) start();
   else audio.addEventListener('loadedmetadata', start, {once:true});
 };
 $('#pStop').onclick = stopAudio;
+if ($('#pRef')) $('#pRef').onclick = e => { e.stopPropagation(); jumpToAudioChapter(); };
 $('#pBack').onclick = () => { audio.currentTime = Math.max(0, audio.currentTime - 15); highlight({ force: true, scroll: true, instant: true }); };
 let sleepMode = 0, sleepT = null;
 function setSleep(m){ sleepMode = m; clearTimeout(sleepT); if (m > 0) sleepT = setTimeout(() => { audio.pause(); sleepMode = 0; applyPrefs(); }, m * 60000); applyPrefs(); }
@@ -690,34 +743,68 @@ audio.ontimeupdate = () => {
   $('#pTime').textContent = fmt(audio.currentTime) + ' / ' + fmt(audio.duration);
   highlight();
 };
+let audioEnding = false;
 audio.onended = () => {
-  const {b, c} = slot();
-  if (sleepMode === -1) { setSleep(0); $('#audioBtn').textContent = '▶'; return; }
-  if (!S.cont) return;
-  if (c < book(b).c.length - 1) { autoNext = true; go(b, c+1); }
-  else if (b < 65) { autoNext = true; go(b+1, 0); }
+  if (audioEnding) return;
+  if (sleepMode === -1) { setSleep(0); syncAudioBtn(); return; }
+  if (!S.cont) { syncAudioBtn(); return; }
+  const b = audioBook, c = audioChap;
+  if (b < 0) { syncAudioBtn(); return; }
+  const viewFollows = viewMatchesAudio();
+  let nb = b, nc = c;
+  if (c < book(b).c.length - 1) nc = c + 1;
+  else if (b < 65) { nb = b + 1; nc = 0; }
+  else { syncAudioBtn(); return; }
+  audioEnding = true;
+  $('#player').hidden = false;
+  document.body.classList.add('playing');
+  loadAudio(nb, nc);
+  const start = () => {
+    audioEnding = false;
+    audio.play().catch(()=>{});
+    syncAudioBtn();
+    updateAudioRefChip();
+    bumpActivity();
+  };
+  if (audio.readyState >= 1) start();
+  else audio.addEventListener('loadedmetadata', start, { once: true });
+  if (viewFollows) {
+    const s = slot(); s.b = nb; s.c = nc; s.y = 0; s.vi = 0; s.vo = 0; save();
+    render(false);
+  } else {
+    updateAudioRefChip();
+  }
 };
 let hlIdx = -1, hlSeekT = 0, lastFollowVerse = 0;
 function clearHL(){ const p = document.querySelector('#text p.hl'); if (p) p.classList.remove('hl'); hlIdx = -1; }
 function verseIndexAtTime(sec){
   if (S.reader !== 'kozlov') return -1;
-  const {b, c} = slot(), k = book(b).o + '.' + (c+1), st = TIMES[k];
+  const b = audioBook >= 0 ? audioBook : slot().b;
+  const c = audioChap >= 0 ? audioChap : slot().c;
+  if (b < 0 || !book(b) || c >= book(b).c.length) return -1;
+  const k = book(b).o + '.' + (c+1), st = TIMES[k];
   if (!st || st.length !== book(b).c[c].length) return -1;
   const ms = (sec != null ? sec : audio.currentTime) * 1000;
   let i = -1;
   for (let j = 0; j < st.length; j++) { if (st[j] <= ms) i = j; else break; }
   return i;
 }
-/* force: update even while paused (seek / ↺15). scroll: scroll into view. */
+/* force: update even while paused (seek / ↺15). scroll: scroll into view.
+   Follow highlight only when the viewed chapter is the audio chapter. */
 function highlight(opts){
   opts = opts || {};
   if (!S.follow || S.reader !== 'kozlov') return;
   if (audio.paused && !opts.force) return;
   const i = verseIndexAtTime(opts.time);
+  if (i >= 0) lastFollowVerse = i;
+  if (!viewMatchesAudio()) {
+    clearHL();
+    updateAudioRefChip();
+    return;
+  }
   if (i === hlIdx && !opts.force) return;
   clearHL(); hlIdx = i;
   if (i < 0) return;
-  lastFollowVerse = i;
   const p = $('#v' + (i+1));
   if (!p) return;
   p.classList.add('hl');
@@ -928,19 +1015,24 @@ document.addEventListener('keydown', bumpActivity);
 let haLast = 0, haTimer = null;
 function haPayload(){
   if (!BIBLE) return null;
-  const {b, c, vi} = slot();
+  const b = audioBook >= 0 ? audioBook : slot().b;
+  const c = audioChap >= 0 ? audioChap : slot().c;
   const bk = book(b);
+  let verse = lastFollowVerse >= 0 ? lastFollowVerse + 1 : 1;
+  const vi = verseIndexAtTime();
+  if (vi >= 0) verse = vi + 1;
+  else if (hlIdx >= 0) verse = hlIdx + 1;
   return {
     osis: bk.o,
     book: bk.n,
     abbr: bk.a,
     chapter: c + 1,
-    verse: (vi|0) + 1,
+    verse,
     reader: S.reader,
     position: Math.round((audio && !isNaN(audio.currentTime) ? audio.currentTime : 0) * 10) / 10,
     playing: !!(audio && !audio.paused),
     timestamp: new Date().toISOString(),
-    deep_link: '#' + bk.o + '.' + (c + 1) + '.' + ((vi|0) + 1)
+    deep_link: '#' + bk.o + '.' + (c + 1) + '.' + verse
   };
 }
 function postHaPosition(force){
