@@ -33,13 +33,14 @@
 <nav id="bar">
   <div id="left">
     <button id="menuBtn" aria-label="Меню">☰</button>
-    <button id="audioBtn" aria-label="Слушать">▶</button>
-    <button type="button" id="micBtn" aria-label="Голос" hidden>🎤</button>
-    <div id="player" hidden>
-      <button id="pBack" aria-label="Назад 15 секунд">↺15</button>
-      <input id="pSeek" type="range" min="0" max="1000" value="0" aria-label="Позиция">
-      <span id="pTime">0:00</span>
-      <button id="pStop" aria-label="Стоп">■</button>
+    <div id="leftMain">
+      <button id="audioBtn" aria-label="Слушать">▶</button>
+      <div id="player" hidden>
+        <button id="pBack" aria-label="Назад 15 секунд">↺15</button>
+        <input id="pSeek" type="range" min="0" max="1000" value="0" aria-label="Позиция">
+        <span id="pTime">0:00</span>
+        <button id="pStop" aria-label="Стоп">■</button>
+      </div>
     </div>
   </div>
   <div id="chNav">
@@ -74,7 +75,7 @@
   <div class="lbl" id="haLbl">Home Assistant</div>
   <input id="haWebhook" type="url" placeholder="https://…/api/webhook/…" autocomplete="off" spellcheck="false">
   <p class="hint" id="haHint">Пусто = выкл. Нужен HTTPS (Cloudflare Tunnel и т.п.). POST позиции при чтении.</p>
-  <button class="link" id="voiceBtn" type="button" hidden>🎤 Голос · Voice</button>
+  <button class="link voiceRow" id="voiceBtn" type="button" hidden data-i="voice">🎤 Голосовая команда</button>
   <button class="link" id="aboutBtn" data-i="about">О приложении</button>
 </div>
 <div id="toast" hidden></div>
