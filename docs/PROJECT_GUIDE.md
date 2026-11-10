@@ -35,7 +35,7 @@ This is the single place to start for anyone, human or assistant, who picks up t
   - Optional Толкование (Lopukhin commentary), Симфония (in-app concordance) and an English (WEB) line under each verse.
 - **The UI is in Russian by default.** An English UI option exists (menu → Язык · Language), but the Bible text is always Russian.
 - **Numbering is Synodal everywhere.** For example, Ps 22 = «Господь – Пастырь мой» (English Ps 23). Deep links, the HA data and the timings all use Synodal numbering.
-- Rey **dropped the Swift Playgrounds version**; the web app is the product. README still mentions `RussianBible.swiftpm` ("coming"), but that line is out of date.
+- Rey **dropped the Swift Playgrounds version**; the web app is the product.
 - Everything is **free and public domain** (see [§9](#9-content-licensing)).
 
 ## 2. Links
@@ -313,7 +313,6 @@ grep -E "FAIL|passed" /tmp/qa.log
 - **No swipe-down-to-close in the book picker** since the «Книги» title row was removed. Close it with ✕, a label tap or a tab tap.
 - **Efimov has no verse timings**, so starting from a verse and follow-along work with Kozlov only.
 - **Updates need reloads:** after a deploy, devices pick up the new SW within one or two loads (see [§3](#3-hosting-deploy-and-cache-gotchas)).
-- README is partly out of date (it mentions `RussianBible.swiftpm`).
 
 ## 12. Pending and later work
 
