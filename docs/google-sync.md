@@ -42,7 +42,7 @@ Pull runs on app open / tab visibility. Push is debounced (~3s) after navigation
    `https://www.googleapis.com/auth/drive.appdata`  
    (Drive app data only — not full Drive).
 6. Publishing status: leave **Testing** (no Google verification needed).
-7. **Test users**: add Rey’s Google account(s) that will sign in from the PWA.  
+7. **Test users**: add the owner’s Google account(s) that will sign in from the PWA.  
    Only listed accounts can use the app while it stays in Testing.
 
 ### 4. Create a Web OAuth client ID

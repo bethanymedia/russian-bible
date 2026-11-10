@@ -1,6 +1,6 @@
 # Russian Synodal Bible PWA: Project Guide (handoff)
 
-This is the single place to start for anyone, human or assistant, who picks up this project. Everything here was taken from the repo, its git history and Rey's stated preferences as of **Nov 9, 2026 (rb-v39, commit `7ae842d`)**. When you change behavior, update this file too.
+This is the single place to start for anyone, human or assistant, who picks up this project. Everything here was taken from the repo, its git history and the project owner's stated preferences as of **Nov 9, 2026 (rb-v39, commit `7ae842d`)**. When you change behavior, update this file too.
 
 ## Contents
 
@@ -9,7 +9,7 @@ This is the single place to start for anyone, human or assistant, who picks up t
 3. [Hosting, deploy and cache gotchas](#3-hosting-deploy-and-cache-gotchas)
 4. [File and architecture map](#4-file-and-architecture-map)
 5. [Data formats and sources](#5-data-formats-and-sources)
-6. [Features and Rey's design decisions](#6-features-and-reys-design-decisions)
+6. [Features and the owner's design decisions](#6-features-and-the-owners-design-decisions)
    - [6.1 Shared (tablet and phone)](#61-shared-tablet-and-phone)
    - [6.2 Tablet (iPad) layout](#62-tablet-ipad-layout)
    - [6.3 Phone layout](#63-phone-layout)
@@ -20,14 +20,14 @@ This is the single place to start for anyone, human or assistant, who picks up t
 10. [Testing](#10-testing)
 11. [Known issues](#11-known-issues)
 12. [Pending and later work](#12-pending-and-later-work)
-13. [Working with Rey (workflow preferences)](#13-working-with-rey-workflow-preferences)
+13. [Working with the owner (workflow preferences)](#13-working-with-the-owner-workflow-preferences)
 14. [Change log](#14-change-log)
 
 ---
 
 ## 1. Overview and goals
 
-- A minimal **Russian Synodal Bible (1876)** reader, built as a static **PWA** (no build step, no framework, no server). Rey mainly uses it on his **iPad**, added to the Home Screen from Safari, and also on an **Android phone in Chrome**.
+- A minimal **Russian Synodal Bible (1876)** reader, built as a static **PWA** (no build step, no framework, no server). The owner mainly uses it on an **iPad**, added to the Home Screen from Safari, and also on an **Android phone in Chrome**.
 - Goals:
   - Fast, calm reading.
   - Three reading tabs, each remembering its own place.
@@ -35,7 +35,7 @@ This is the single place to start for anyone, human or assistant, who picks up t
   - Optional Толкование (Lopukhin commentary), Симфония (in-app concordance) and an English (WEB) line under each verse.
 - **The UI is in Russian by default.** An English UI option exists (menu → Язык · Language), but the Bible text is always Russian.
 - **Numbering is Synodal everywhere.** For example, Ps 22 = «Господь – Пастырь мой» (English Ps 23). Deep links, the HA data and the timings all use Synodal numbering.
-- Rey **dropped the Swift Playgrounds version**; the web app is the product.
+- The owner **dropped the Swift Playgrounds version**; the web app is the product.
 - Everything is **free and public domain** (see [§9](#9-content-licensing)).
 
 ## 2. Links
@@ -69,7 +69,7 @@ This is the single place to start for anyone, human or assistant, who picks up t
 - **`const V = 'rb-vNN'`** is the cache name. **Bump it on every change to `web/`.** Activating a new version deletes the old caches. History: rb-v34 (QA pass 2) → v35 (tablet bar v9) → v36 (fonts) → v37 (e-Sword dark) → v38 (picker / light selection / SW fix) → **v39 (current, bigger ▶)**.
 - Precache list `FILES`: the app shell, the icons, `data/bible.json`, `data/kozlov_timings.json` and `data/web.json`. Install uses `new Request(f, {cache:'reload'})`, so the precache never picks up stale copies from the HTTP cache.
 - **App files are network-first** with `fetch(e.request, {cache:'no-cache'})`, falling back to the cache when offline.
-  - Why: GitHub Pages sends **`cache-control: max-age=600`**. A plain `fetch(e.request)` can be answered from the browser's HTTP cache, so a deploy showed up **as much as 10 minutes late**. That caused Rey's "selection still green" report. Fixed in `3ea991a`, with a regression test in `GROUPS.sw`.
+  - Why: GitHub Pages sends **`cache-control: max-age=600`**. A plain `fetch(e.request)` can be answered from the browser's HTTP cache, so a deploy showed up **as much as 10 minutes late**. That caused the owner's "selection still green" report. Fixed in `3ea991a`, with a regression test in `GROUPS.sw`.
 - **`/data/` and `/fonts/` are cache-first**, cached on first use (fonts are **not** precached; a test checks this).
 - After a deploy, a device needs one or two reloads or app opens before the new SW takes control.
 
@@ -129,9 +129,9 @@ tests/ qa.js (end-to-end suite), mocks.js (fake audio, wake lock, sendBeacon)
 
 OSIS codes (`Gen`, `Ps`, `John`, `1Chr` …) are used in deep links, timings, commentary and verse files.
 
-## 6. Features and Rey's design decisions
+## 6. Features and the owner's design decisions
 
-**Don't change behaviors Rey asked for** unless he asks. Anything in this section is deliberate.
+**Don't change behaviors the owner asked for** unless the owner asks. Anything in this section is deliberate.
 
 ### 6.1 Shared (tablet and phone)
 
@@ -142,7 +142,7 @@ OSIS codes (`Gen`, `Ps`, `John`, `1Chr` …) are used in deep links, timings, co
   - At the end of a chapter, a button shows the next chapter's name (e.g. «Псалом 24 →»).
 - **Book picker** (tap the bottom label `#current`):
   - OT, NT and a chapter strip on one screen; books sit in bordered group boxes and read top to bottom by column. OT is gold and NT is green.
-  - **No «Книги» title row** (removed per Rey so the lists sit higher). Closing works three ways:
+  - **No «Книги» title row** (removed at the owner's request so the lists sit higher). Closing works three ways:
     - a small ✕ at the right end of the top-right testament heading (NT heading in landscape, OT heading in portrait);
     - tapping the label again;
     - tapping a tab.
@@ -177,7 +177,7 @@ OSIS codes (`Gen`, `Ps`, `John`, `1Chr` …) are used in deep links, timings, co
   - Sleep timer: Выкл / 15 / 30 / 60 min / end of chapter.
   - Continue to next chapter; Follow verse (Kozlov).
   - О приложении (credits).
-  - **Дополнительно** (off by default): reveals the voice command 🎤, the Home Assistant webhook URL and Google sync. Rey wants these hidden but the code kept.
+  - **Дополнительно** (off by default): reveals the voice command 🎤, the Home Assistant webhook URL and Google sync. The owner wants these hidden but the code kept.
 - **Fonts** (Bible text, English lines and the Толкование/Симфония panel text; the UI chrome keeps the system font):
   - Georgia (default), PT Serif, Literata, Noto Serif, PT Sans and Noto Sans.
   - Self-hosted OFL woff2 files (Cyrillic + Latin, 400 and 700). Nothing loads until the menu opens; opening it loads only the 400 weights for previews, and the chosen font also loads 700.
@@ -194,9 +194,9 @@ Tested at 1180×820 and 820×1180.
 
 - **Bottom bar** (64 px): ☰ on the left, then ▶/❚❚, then ‹ label › and the three tabs on the right.
 - **▶/❚❚:**
-  - **Final size: a 46 px glyph in a 58 px button** (rb-v39). Rey later said it is **fine as is**, so don't enlarge it again.
+  - **Final size: a 46 px glyph in a 58 px button** (rb-v39). The owner later said it is **fine as is**, so don't enlarge it again.
   - It sits at **one fixed spot, centered halfway between ☰ and ‹**, in both states, with no shift when toggled.
-  - Icons are muted gray (`--bar-icon`), which Rey asked for ("less bright, grayer").
+  - Icons are muted gray (`--bar-icon`), which the owner asked for ("less bright, grayer").
 - **While playing:**
   - `[chip ↺15] ❚❚ [time ■]` hang off either side of ❚❚. The chip shows which chapter is playing when you're viewing a different one.
   - **There is no seek slider.**
@@ -262,8 +262,8 @@ Theme variables are on `style.css` lines 1–3: light `:root`, then `:root[data-
 | --- | --- | --- |
 | **Igor Kozlov** (default) | `https://huggingface.co/datasets/enochlev/russian-synodal-bible-kozlov/resolve/main/a1/kozlov/<OSIS>/<ch>.m4a` | Blagovestnik, freely distributed. Has **verse timings** (start from a verse, follow-along). |
 | **A. F. Efimov** | `https://theaudiopower.org/RUSV/Recordings/<book.e>[ <ch>].mp3` | Blagovestnik. **No verse timings**, so it always starts at the beginning of the chapter. |
-| Bondarenko, Wordproject | none | **Dropped by Rey** (copyright or unclear license). Don't re-add them. |
-| Faith Comes By Hearing **Bible Brain** | none | **Pending.** Rey will look into an API key himself. |
+| Bondarenko, Wordproject | none | **Dropped by the owner** (copyright or unclear license). Don't re-add them. |
+| Faith Comes By Hearing **Bible Brain** | none | **Pending.** The owner will look into an API key. |
 
 Audio streams over the internet; it isn't cached offline. The ↺15 button rewinds 15 s.
 
@@ -318,18 +318,18 @@ grep -E "FAIL|passed" /tmp/qa.log
 
 - [ ] **Google Drive sync:** create a Web OAuth client ID and paste it into `GOOGLE_CLIENT_ID` in `web/sync.js` (steps in [docs/google-sync.md](./google-sync.md)). Then enable it under Дополнительно → Синхронизация.
 - [ ] **Home Assistant:** follow the plan in [docs/home-assistant/README.md](./home-assistant/README.md).
-  - Rey ordered a **Voice Preview Edition** (backordered).
+  - The owner ordered a **Voice Preview Edition** (backordered).
   - Use HA Assist (Russian) to play chapter audio on speakers and open chapters on the iPad through deep links, using local Piper TTS.
-  - Rey uses **Alexa rather than Siri**; Alexa routines would trigger HA scripts.
+  - The owner uses **Alexa rather than Siri**; Alexa routines would trigger HA scripts.
 - [ ] **Private remote access:** keep HA local only and switch to Tailscale after the Nabu Casa trial ([tailscale.md](./home-assistant/tailscale.md), with a checklist). No router port forwarding; DuckDNS is not recommended. Cloudflare Tunnel + Access only if something external, like an Alexa skill, must reach HA.
 - [ ] **Nabu Casa trial reminder:** cancel before it bills (README → "Cancel before it bills").
 - [ ] **Voice commands (🎤)** were started but **not finished.** The parser is in `voice.js`, and the UI is behind Дополнительно. They need real-device testing (mic permissions).
-- [ ] **Siri shortcut** (deep link `#Ps.22` / `?play=1`): listed as later work. This is low priority, since Rey prefers Alexa.
-- [ ] **Bible Brain audio:** waiting on Rey's API key.
+- [ ] **Siri shortcut** (deep link `#Ps.22` / `?play=1`): listed as later work. This is low priority, since the owner prefers Alexa.
+- [ ] **Bible Brain audio:** waiting on the owner's API key.
 
-## 13. Working with Rey (workflow preferences)
+## 13. Working with the owner (workflow preferences)
 
-- **Keep behavior he asked for.** Don't "improve" a requested behavior on your own; ask first.
+- **Keep behavior the owner asked for.** Don't "improve" a requested behavior on your own; ask first.
 - **Russian UI text.** New labels need `T.ru`, plus `T.en` for the English UI.
 - **Tablet-only requests must not change the phone**, and vice versa. Scope tablet CSS with `body:not(.phone)` and confirm with the pixel compare.
 - **Screenshots only for visible changes.** Save them under `/workspace/shots/` with **new, versioned file names** (e.g. `play-v10.png`, `picker-v2.png`). iPad shots are 1180×820, plus 820×1180 when portrait matters.

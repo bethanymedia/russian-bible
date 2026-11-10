@@ -1,6 +1,6 @@
 # Библия — Russian Synodal Bible for iPad
 
-> **Working on this project? Start with [docs/PROJECT_GUIDE.md](docs/PROJECT_GUIDE.md).** It covers architecture, deploy and cache gotchas, Rey's design decisions, tests, pending work and the change log.
+> **Working on this project? Start with [docs/PROJECT_GUIDE.md](docs/PROJECT_GUIDE.md).** It covers architecture, deploy and cache gotchas, the project owner's design decisions, tests, pending work and the change log.
 
 Minimal Russian Synodal Bible reader with three reading slots, light/dark/auto themes, adjustable text size, and chapter audio (Igor Kozlov, A. F. Efimov).
 
